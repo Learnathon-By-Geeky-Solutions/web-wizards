@@ -1,5 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { Bar } from 'react-chartjs-2';
+import PropTypes from 'prop-types';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -58,11 +59,11 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         </button>
       </div>
       <nav className="mt-6">
-        {menuItems.map((item) => (
+        {menuItems.map((item, idx) => (
           <button
-            key={item.label}
+            key={`${item.label}-${idx}`}
             onClick={() => handleNavigation(item.label)}
-            className="block w-full text-left p-4 hover:bg-blue-500 hover:text-white flex items-center"
+            className="w-full text-left p-4 hover:bg-blue-500 hover:text-white flex items-center"
           >
             <div className="mr-4">{item.icon}</div>
             {!isCollapsed && item.label}
@@ -73,10 +74,15 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
   );
 };
 
+Sidebar.propTypes = {
+  isCollapsed: PropTypes.bool.isRequired,
+  toggleSidebar: PropTypes.func.isRequired,
+};
+
 // Dashboard Component
 const Dashboard = () => {
   const { logout } = useContext(AuthContext);
-  const [user, setUser] = useState({
+  const [user] = useState({
     name: 'Faysal Ahammed',
     email: 'faysal@example.com',
   });
@@ -121,7 +127,7 @@ const Dashboard = () => {
 
   // Profile Info and Logout Handlers
   const handleProfileInfoClick = () => {
-    alert(`Profile Info\nName: ${user.name}\nEmail: ${user.email}`);
+    alert(`Profile Info\nName: ${user?.name}\nEmail: ${user?.email}`);
     setIsDropdownOpen(false);
   };
 
@@ -131,7 +137,7 @@ const Dashboard = () => {
   };
 
   // Display the first letter of user's name
-  const getFirstLetter = (name) => name && name[0].toUpperCase();
+  const getFirstLetter = (name) => name?.[0].toUpperCase();
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -146,7 +152,7 @@ const Dashboard = () => {
         {/* Profile Section */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <p className="text-gray-600">Good Afternoon, {user ? user.name : 'Guest'}</p>
+            <p className="text-gray-600">Good Afternoon, {user?.name || 'Guest'}</p>
           </div>
           <div className="relative">
             {/* Profile Dropdown */}
@@ -156,9 +162,9 @@ const Dashboard = () => {
             >
               {/* Profile Pic - First Letter */}
               <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center">
-                <span>{getFirstLetter(user ? user.name : '')}</span>
+                <span>{getFirstLetter(user?.name || '')}</span>
               </div>
-              <span className="ml-2 text-gray-700">{user ? user.name : 'Guest'}</span>
+              <span className="ml-2 text-gray-700">{user?.name || 'Guest'}</span>
               <svg
                 className="w-4 h-4 ml-1 text-gray-500"
                 xmlns="http://www.w3.org/2000/svg"
@@ -193,7 +199,7 @@ const Dashboard = () => {
         {/* Charts Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {chartData.map((data, index) => (
-            <div key={index} className="bg-white p-6 rounded-lg shadow">
+            <div key={`chart-${data.datasets[0].label}-${index}`} className="bg-white p-6 rounded-lg shadow">
               <h2 className="text-xl font-semibold mb-4">Health Data Chart {index + 1}</h2>
               <Bar data={data} options={chartOptions} />
             </div>

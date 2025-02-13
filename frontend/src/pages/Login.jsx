@@ -102,17 +102,15 @@ const Login = () => {
             <img
               src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"
               alt="Google"
-              className="w-5 h-5 mr-2"
-            />
-            Sign in with Google
+              className="w-5 h-5 mr-2 inline-block"
+            />Sign in with Google
           </button>
           <button className="w-full bg-white border border-gray-300 p-3 rounded-lg flex items-center justify-center hover:bg-gray-50 transition duration-300">
             <img
               src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
               alt="Apple"
-              className="w-5 h-5 mr-2"
-            />
-            Sign in with Apple
+              className="w-5 h-5 mr-2 inline-block"
+            /> Sign in with Apple
           </button>
         </div>
 
