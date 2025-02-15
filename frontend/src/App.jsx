@@ -14,6 +14,7 @@ import Logbook from './components/MedicalRecord/Logbook';
 import LabResult from './components/MedicalRecord/LabResult';
 import Symptoms from './components/MedicalRecord/Symptoms';
 import HealthIssues from './components/Dashboard/Health Issues';
+import Chat from './components/Dashboard/Chat';
 
 
 const PrivateRoute = ({ element }) => {
@@ -52,6 +53,7 @@ function App() {
           <Route path="/labresult" element={<PublicRoute element={<LabResult />} />} />
           <Route path="/documents" element={<PublicRoute element={<Documents />} />} />
           <Route path="/healthissues" element={<PublicRoute element={<HealthIssues />} />} />
+          <Route path="/chat" element={<PublicRoute element={<Chat />} />} />
           
         </Routes>
       </Router>
