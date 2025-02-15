@@ -17,13 +17,17 @@ const Login = () => {
 
   const onSubmit = async (data) => {
     try {
+      
       const response = await loginUser(data);
+      // Save token in localStorage (or sessionStorage)
+      localStorage.setItem('accessToken', response.access);
+      localStorage.setItem('refreshToken', response.refresh); 
       console.log('Login successful:', response);
       login(response.access);
       navigate('/dashboard');
     } catch (error) {
       console.error('Login failed:', error);
-      setErrorMessage(error.message);
+      setErrorMessage(error.message || 'Invalid credentials. Please try again.');
     }
   };
 
@@ -79,6 +83,13 @@ const Login = () => {
             <p className="text-red-500 text-sm mb-4">{errorMessage}</p>
           )}
 
+          {/* Forgot Password */}
+          <div className="text-right mb-4">
+            <Link to="/forgot-password" className="text-blue-500 hover:underline text-sm">
+              Forgot Password?
+            </Link>
+          </div>
+
           {/* Submit Button */}
           <button
             type="submit"
@@ -118,16 +129,13 @@ const Login = () => {
 
         {/* Footer */}
         <p className="text-center mt-6 text-xs text-gray-500">
-          Forgot your password?
-          <br />
-          <a href="/terms" className="text-blue-500 hover:underline">
+          <Link to="/terms" className="text-blue-500 hover:underline">
             Terms Of Use
-          </a>{' '}
+          </Link>{' '}
           |{' '}
-          <a href="/privacy" className="text-blue-500 hover:underline">
+          <Link to="/privacy" className="text-blue-500 hover:underline">
             Privacy Policy
-          </a>
-          <br />
+          </Link>
         </p>
       </div>
     </div>

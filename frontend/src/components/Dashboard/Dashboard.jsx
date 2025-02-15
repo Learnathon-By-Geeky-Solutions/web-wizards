@@ -29,9 +29,9 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
   const handleNavigation = (section) => {
     console.log(`Navigating to ${section}`);
     // Add your navigation logic here (e.g., using react-router-dom)
-  };
+};
 
-  const menuItems = [
+const menuItems = [
     { label: 'Dashboard', icon: <FaTachometerAlt /> },
     { label: 'Medications', icon: <FaPills /> },
     { label: 'Medical Record', icon: <FaClipboardList /> },
@@ -40,7 +40,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
     { label: 'Chat', icon: <FaComments /> },
     { label: 'Appointments', icon: <FaCalendarAlt /> },
     { label: 'Settings', icon: <FaCog /> },
-  ];
+];
 
   return (
     <div

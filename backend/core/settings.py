@@ -46,6 +46,7 @@ ALLOWED_HOSTS = [
 #]
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
+    'http://127.0.0.1:5173',
 ]
 
 AUTH_USER_MODEL = 'users.Users'
@@ -163,6 +164,8 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny'
+        
     ),
 }
 
@@ -189,4 +192,22 @@ CLOUDINARY_STORAGE = {
 }
 
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+
+# Email Configuration for Forgot Password
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'wizardsweb7@gmail.com'
+EMAIL_HOST_PASSWORD = 'rfvb urzm mlhj xfgh'  # Use the app password from Step 1
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_HOST = env("EMAIL_HOST", default="smtp.gmail.com")
+# EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+# EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+# EMAIL_HOST_USER = env("EMAIL_HOST_USER")  # Your email address
+# EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")  # Your email password
+# DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Your App <your_email@gmail.com>")
 

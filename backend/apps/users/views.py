@@ -1,11 +1,21 @@
 from django.contrib.auth.hashers import make_password, check_password
+from django.core.mail import send_mail
+import random
+from rest_framework.views import APIView
+from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.conf import settings
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Users, AdminProfile, DoctorProfile, PatientProfile
-from .serializers import UserSerializer, AdminProfileSerializer, DoctorProfileSerializer, PatientProfileSerializer, LoginSerializer
-
+from .serializers import (
+    UserSerializer, AdminProfileSerializer, DoctorProfileSerializer, 
+    PatientProfileSerializer, LoginSerializer, ForgotPasswordSerializer, ResetPasswordSerializer
+)
 
 class RegisterView(generics.CreateAPIView):
     """ User Registration View (Handles User and Profile) """
@@ -15,7 +25,6 @@ class RegisterView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         """ Handles user and profile creation """
         data = request.data
-        print(data)
         if data.get("password") != data.get("confirmPassword"):
             return Response({"error": "Passwords do not match"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -62,7 +71,6 @@ class RegisterView(generics.CreateAPIView):
 
             if profile_serializer.is_valid():
                 profile_serializer.save()
-
                 refresh = RefreshToken.for_user(user)
                 return Response({
                     "user": user_serializer.data,
@@ -119,3 +127,57 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
             return DoctorProfile.objects.get(user=user)
         elif user.user_type == 'Patient':
             return PatientProfile.objects.get(user=user)
+
+
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]  # Allow unauthenticated users
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data["email"]  # Get email
+            reset_link = serializer.context.get("reset_link")  # Get reset link
+
+            # Send email with reset link        
+            send_mail(
+                subject="Password Reset Request",
+                message=f"Click the link below to reset your password:\n{reset_link}",
+                from_email="wizardsweb7@gmail.com",
+                recipient_list=[email],  # Use extracted email
+                fail_silently=False,
+            )
+
+            return Response({"message": "Password reset link sent successfully!", "reset": reset_link}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+   
+
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]  # Allow unauthenticated users
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            uidb64 = serializer.validated_data['uidb64']
+            token = serializer.validated_data['token']
+            new_password = serializer.validated_data['new_password']
+
+            try:
+                uid = force_str(urlsafe_base64_decode(uidb64))
+                user = Users.objects.get(pk=uid)
+
+                if default_token_generator.check_token(user, token):
+                    user.set_password(new_password)
+                    user.save()
+                    return Response({"message": "Password reset successful!"}, status=status.HTTP_200_OK)
+                else:
+                    print("Invalid token")
+                    return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
+                
+
+            except Exception as e:
+                print(str(e),"2")
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
