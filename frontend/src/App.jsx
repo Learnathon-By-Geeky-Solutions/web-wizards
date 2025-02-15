@@ -8,6 +8,13 @@ import Login from './pages/Login';
 import Dashboard from './components/Dashboard/Dashboard';
 import { AuthProvider, AuthContext } from './context/authContext';
 import MedicalRecord from './components/MedicalRecord/MedicalRecord';
+import Charts from './components/MedicalRecord/Charts';
+import Documents from './components/MedicalRecord/Documents';
+import Logbook from './components/MedicalRecord/Logbook';
+import LabResult from './components/MedicalRecord/LabResult';
+import Symptoms from './components/MedicalRecord/Symptoms';
+import HealthIssues from './components/Dashboard/Health Issues';
+
 
 const PrivateRoute = ({ element }) => {
   const { isAuthenticated}  = true;
@@ -38,6 +45,14 @@ function App() {
           <Route path="/login" element={<PublicRoute element={<Login />} />} />
           <Route path="/dashboard" element={<PublicRoute element={<Dashboard />} />} />
           <Route path="/medicalrecord" element={<PublicRoute element={<MedicalRecord />} />} />
+          <Route path="/logbook" element={<PublicRoute element={<Logbook />} />} />
+          <Route path="/charts" element={<PublicRoute element={<Charts />} />} />
+          
+          <Route path="/symptoms" element={<PublicRoute element={<Symptoms />} />} />
+          <Route path="/labresult" element={<PublicRoute element={<LabResult />} />} />
+          <Route path="/documents" element={<PublicRoute element={<Documents />} />} />
+          <Route path="/healthissues" element={<PublicRoute element={<HealthIssues />} />} />
+          
         </Routes>
       </Router>
     </AuthProvider>
