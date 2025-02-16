@@ -18,6 +18,7 @@ import Chat from './components/Dashboard/Chat';
 import Appointments from './components/Dashboard/Appointments';
 import Setting from './components/Dashboard/Setting';
 import MedicationPlans from './components/Medication/Medication Plans';
+import Medication from './components/Medication/Medication';
 
 
 const PrivateRoute = ({ element }) => {
@@ -60,6 +61,7 @@ function App() {
           <Route path="/appointments" element={<PublicRoute element={<Appointments />} />} />
           <Route path="/setting" element={<PublicRoute element={<Setting />} />} />
           <Route path="/medicationplans" element={<PublicRoute element={<MedicationPlans />} />} />
+          <Route path="/medication" element={<PublicRoute element={<Medication />} />} />
         </Routes>
       </Router>
     </AuthProvider>

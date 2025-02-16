@@ -10,7 +10,7 @@ import {
   Cog6ToothIcon,
 } from '@heroicons/react/24/outline';
 
-const Appointments = () => {
+const Medication = () => {
   const { user, logout } = useContext(AuthContext);
 
   // Basic states
@@ -33,7 +33,7 @@ const Appointments = () => {
   const getFirstLetter = (name) => name?.[0].toUpperCase();
 
   // Page navigation for Appointments
-  const [currentPage, setCurrentPage] = useState('Appointments');
+  const [currentPage, setCurrentPage] = useState('Medication');
 
   // Sidebar items
   const sidebarItems = [
@@ -74,7 +74,7 @@ const Appointments = () => {
       <div className="flex-1 p-6">
         {/* Header Section with Title and Profile */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Appointments</h2>
+          <h2 className="text-2xl font-bold">Medication</h2>
           
           {/* User Profile Dropdown */}
           <div className="relative">
@@ -129,4 +129,4 @@ const Appointments = () => {
   );
 };
 
-export default Appointments;
+export default Medication;
