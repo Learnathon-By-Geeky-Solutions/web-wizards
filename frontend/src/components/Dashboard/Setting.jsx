@@ -18,6 +18,9 @@ const Setting = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  // Message state for showing success feedback
+  const [message, setMessage] = useState('');
+
   const handleProfileInfoClick = () => {
     alert(`Profile Info\nName: ${user?.name}\nEmail: ${user?.email}`);
     setIsDropdownOpen(false);
@@ -77,6 +80,10 @@ const Setting = () => {
 
   const handleSave = (e) => {
     e.preventDefault();
+
+    // Example validation can be added here if needed.
+    // Since the form has default values, this example proceeds to "save".
+
     console.log({
       unitOfMeasurement,
       cholesterolUnit,
@@ -91,6 +98,10 @@ const Setting = () => {
       bedTime,
       use24HourClock,
     });
+
+    // Set the success message and clear it after 3 seconds
+    setMessage('Settings saved successfully');
+    setTimeout(() => setMessage(''), 3000);
   };
 
   // Loading state
@@ -150,6 +161,14 @@ const Setting = () => {
         {/* Settings Form */}
         <div className="max-w-xl mx-auto p-4 bg-white rounded shadow-md">
           <h1 className="text-xl font-bold mb-6">Settings</h1>
+
+          {/* Display success message */}
+          {message && (
+            <div className="mb-4 p-2 bg-green-100 text-green-800 rounded">
+              {message}
+            </div>
+          )}
+
           <form onSubmit={handleSave} className="space-y-4">
             <div>
               <label
