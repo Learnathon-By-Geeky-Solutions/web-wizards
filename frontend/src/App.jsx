@@ -16,10 +16,10 @@ import Symptoms from './components/MedicalRecord/Symptoms';
 import HealthIssues from './components/Dashboard/Health Issues';
 import Chat from './components/Dashboard/Chat';
 import Appointments from './components/Dashboard/Appointments';
-import Setting from './components/Dashboard/Setting';
+import Setting from './components/setting/Setting';
 import MedicationPlans from './components/Medication/Medication Plans';
 import Medication from './components/Medication/Medication';
-
+import Clinicians from './pages/Clinicians';
 
 const PrivateRoute = ({ element }) => {
   const { isAuthenticated}  = true;
@@ -52,16 +52,16 @@ function App() {
           <Route path="/medicalrecord" element={<PublicRoute element={<MedicalRecord />} />} />
           <Route path="/logbook" element={<PublicRoute element={<Logbook />} />} />
           <Route path="/charts" element={<PublicRoute element={<Charts />} />} />
-          
           <Route path="/symptoms" element={<PublicRoute element={<Symptoms />} />} />
           <Route path="/labresult" element={<PublicRoute element={<LabResult />} />} />
           <Route path="/documents" element={<PublicRoute element={<Documents />} />} />
           <Route path="/healthissues" element={<PublicRoute element={<HealthIssues />} />} />
           <Route path="/chat" element={<PublicRoute element={<Chat />} />} />
           <Route path="/appointments" element={<PublicRoute element={<Appointments />} />} />
-          <Route path="/setting" element={<PublicRoute element={<Setting />} />} />
+          <Route path="/settings" element={<PublicRoute element={<Setting />} />} />
           <Route path="/medicationplans" element={<PublicRoute element={<MedicationPlans />} />} />
           <Route path="/medication" element={<PublicRoute element={<Medication />} />} />
+          <Route path="/clinicians" element={<PublicRoute element={<Clinicians />} />} />
         </Routes>
       </Router>
     </AuthProvider>

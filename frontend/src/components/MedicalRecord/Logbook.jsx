@@ -1,56 +1,15 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../context/authContext';
-import {
-  Squares2X2Icon,
-  ClipboardDocumentIcon,
-  HeartIcon,
-  UserGroupIcon,
-  ChatBubbleOvalLeftIcon,
-  CalendarIcon,
-  Cog6ToothIcon,
-  BookOpenIcon,
-  ChartBarIcon,
-  DocumentIcon,
-  BeakerIcon,
-  XMarkIcon, // Close icon
-} from '@heroicons/react/24/outline';
+import Sidebar from '../Sidebar';
+import TopNav from './TopNav';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import { FaPlus, FaRegHeart } from 'react-icons/fa';
 
 const Logbook = () => {
   const { user } = useContext(AuthContext);
-
-  // State management
   const [fullName] = useState('Faysal Ahammed');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState('LOGBOOK');
-
-  // Sidebar & top navigation items
-  const sidebarItems = [
-    { name: 'Dashboard', icon: Squares2X2Icon },
-    { name: 'Medical record', icon: ClipboardDocumentIcon },
-    { name: 'Health Issues', icon: HeartIcon },
-    { name: 'Medications', icon: ClipboardDocumentIcon },
-    { name: 'Clinicians', icon: UserGroupIcon },
-    { name: 'Chat', icon: ChatBubbleOvalLeftIcon },
-    { name: 'Appointments', icon: CalendarIcon },
-    { name: 'Settings', icon: Cog6ToothIcon },
-  ];
-
-  const topNavItems = [
-    { name: 'Dashboard', icon: Squares2X2Icon },
-    { name: 'Logbook', icon: BookOpenIcon },
-    { name: 'Symptoms', icon: HeartIcon },
-    { name: 'Charts', icon: ChartBarIcon },
-    { name: 'Documents', icon: DocumentIcon },
-    { name: 'Lab Results', icon: BeakerIcon },
-  ];
-
-  // If loading, show a placeholder
-  if (isLoading) return <div>Loading...</div>;
-
-  // Navigation Handlers
-  const handleEntryTypeClick = (entryType) =>
-    setCurrentPage(entryType.toUpperCase().replace(/ /g, '_'));
 
   // Entry types for "Add new entry"
   const entryTypes = [
@@ -67,6 +26,10 @@ const Logbook = () => {
     'Oxygen saturation',
     'HBA1c',
   ];
+
+  // Navigation Handlers
+  const handleEntryTypeClick = (entryType) =>
+    setCurrentPage(entryType.toUpperCase().replace(/ /g, '_'));
 
   // Close button component
   const CloseButton = () => (
@@ -127,49 +90,13 @@ const Logbook = () => {
     );
   };
 
+  if (isLoading) return <div>Loading...</div>;
+
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-64 bg-teal-900 text-white p-4 space-y-4">
-        <h1 className="text-2xl font-bold">Amarhealth</h1>
-        <nav>
-          {sidebarItems.map((item) => (
-            <button
-              key={item.name}
-              className="flex items-center p-3 space-x-3 w-full rounded-lg hover:bg-teal-700"
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.name}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 p-6">
-        {/* Top Navigation */}
-        <div className="flex justify-between items-center bg-white p-3 shadow-md rounded-lg">
-          <div className="flex space-x-6">
-            {topNavItems.map((item) => (
-              <button
-                key={item.name}
-                className="flex items-center space-x-2 text-gray-600 hover:text-blue-600"
-              >
-                <item.icon className="w-5 h-5" />
-                <span>{item.name}</span>
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center space-x-3">
-            <span className="font-semibold">{fullName}</span>
-            <img
-              src="/user-avatar.png"
-              alt="User"
-              className="w-8 h-8 rounded-full"
-            />
-          </div>
-        </div>
-
+      <Sidebar />
+      <div className="flex-1 ml-64 p-6">
+        <TopNav fullName={fullName} />
         {/* Logbook Functionality */}
         <div className="mt-6">
           {/* Logbook Home */}

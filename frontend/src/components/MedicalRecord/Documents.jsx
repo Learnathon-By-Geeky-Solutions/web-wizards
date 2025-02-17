@@ -1,28 +1,12 @@
-import React, { useState, useContext, useRef } from 'react';
+import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../context/authContext';
-import {
-  Squares2X2Icon,
-  ClipboardDocumentIcon,
-  HeartIcon,
-  UserGroupIcon,
-  ChatBubbleOvalLeftIcon,
-  CalendarIcon,
-  Cog6ToothIcon,
-  BookOpenIcon,
-  ChartBarIcon,
-  DocumentIcon,
-  BeakerIcon,
-  PhotoIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-} from '@heroicons/react/24/outline';
+import Sidebar from '../Sidebar';
+import TopNav from './TopNav';
 
 const Documents = () => {
-  const { user, logout } = useContext(AuthContext);
-  const [fullName, setFullName] = useState('Faysal Ahammed');
-  const [isLoading, setIsLoading] = useState(false);
-
-  // New states for the DocumentsPage content
+  const { user } = useContext(AuthContext); // Removed unused logout
+  const [fullName] = useState('Faysal Ahammed'); // Removed unused setFullName
+  const [isLoading] = useState(false); // Removed unused setIsLoading
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
 
@@ -30,78 +14,15 @@ const Documents = () => {
     setSelectedFile(e.target.files[0]);
   };
 
-  // Sidebar Items
-  const sidebarItems = [
-    { name: 'Dashboard', icon: Squares2X2Icon },
-    { name: 'Medical record', icon: ClipboardDocumentIcon },
-    { name: 'Health Issues', icon: HeartIcon },
-    { name: 'Medications', icon: ClipboardDocumentIcon },
-    { name: 'Clinicians', icon: UserGroupIcon },
-    { name: 'Chat', icon: ChatBubbleOvalLeftIcon },
-    { name: 'Appointments', icon: CalendarIcon },
-    { name: 'Settings', icon: Cog6ToothIcon },
-  ];
-
-  // Top Navigation Items
-  const topNavItems = [
-    { name: 'Dashboard', icon: Squares2X2Icon },
-    { name: 'Logbook', icon: BookOpenIcon },
-    { name: 'Symptoms', icon: HeartIcon },
-    { name: 'Charts', icon: ChartBarIcon },
-    { name: 'Documents', icon: DocumentIcon },
-    { name: 'Lab Results', icon: BeakerIcon },
-  ];
-
-  console.log('Component rendering:', { user, fullName });
-
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100 relative">
-      {/* Sidebar */}
-      <div className="w-64 bg-teal-900 text-white p-4 space-y-4">
-        <h1 className="text-2xl font-bold">Amarhealth</h1>
-        <nav>
-          {sidebarItems.map((item) => (
-            <button
-              key={item.name}
-              className="flex items-center p-3 space-x-3 w-full rounded-lg hover:bg-teal-700"
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.name}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 p-6">
-        {/* Top Navigation */}
-        <div className="flex justify-between items-center bg-white p-3 shadow-md rounded-lg mb-6">
-          <div className="flex space-x-6">
-            {topNavItems.map((item) => (
-              <button
-                key={item.name}
-                className="flex items-center space-x-2 text-gray-600 hover:text-blue-600"
-              >
-                <item.icon className="w-5 h-5" />
-                <span>{item.name}</span>
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center space-x-3">
-            <span className="font-semibold">{fullName}</span>
-            <img
-              src="/user-avatar.png"
-              alt="User"
-              className="w-8 h-8 rounded-full"
-            />
-          </div>
-        </div>
-
-        {/* Documents Page Content */}
+    <div className="flex min-h-screen bg-gray-100">
+      <Sidebar />
+      <div className="flex-1 ml-64 p-6">
+        <TopNav fullName={fullName} />
         <div className="p-6 bg-gray-50 min-h-screen relative">
           {!showAddForm ? (
             // Documents List Page

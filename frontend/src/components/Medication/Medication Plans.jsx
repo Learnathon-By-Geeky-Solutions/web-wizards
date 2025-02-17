@@ -1,26 +1,18 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../context/authContext';
+import Sidebar from '../Sidebar';
 import {
-  Squares2X2Icon,
-  ClipboardDocumentIcon,
-  HeartIcon,
-  UserGroupIcon,
-  ChatBubbleOvalLeftIcon,
-  CalendarIcon,
-  Cog6ToothIcon,
   PencilSquareIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
 
 const MedicationPlans = () => {
-  const { user, logout } = useContext(AuthContext);
-
-  // Basic states
-  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useContext(AuthContext);
+  const [isLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState('MEDICATION_PLANS_HOME');
 
-  // Dropdown & search filters
-  const [statusFilter, setStatusFilter] = useState('Active'); // "Active", "Inactive", "All"
+  // Filters state
+  const [statusFilter, setStatusFilter] = useState('Active');
   const [healthIssueFilter, setHealthIssueFilter] = useState('All Health Issues');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -32,65 +24,26 @@ const MedicationPlans = () => {
       effectiveDate: '2025-01-08',
       status: 'Active',
     },
-    // Add more plans as needed
   ]);
 
-  // Modal open/close
+  // Modal handlers
   const openLogMedicationPlan = () => setCurrentPage('LOG_MEDICATION_PLAN');
   const closeLogMedicationPlan = () => setCurrentPage('MEDICATION_PLANS_HOME');
 
   // Filter logic
   const filteredPlans = medicationPlans.filter((plan) => {
-    // Filter by status
-    if (statusFilter !== 'All' && plan.status !== statusFilter) {
-      return false;
-    }
-    // Filter by search term
-    if (searchTerm && !plan.id.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
-    }
-    // (Optional) Filter by health issue if needed
-    // Currently just returning true for "All Health Issues"
+    if (statusFilter !== 'All' && plan.status !== statusFilter) return false;
+    if (searchTerm && !plan.id.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
   });
 
-  // Loading state
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  // Sidebar items
-  const sidebarItems = [
-    { name: 'Dashboard', icon: Squares2X2Icon },
-    { name: 'Medical record', icon: ClipboardDocumentIcon },
-    { name: 'Health Issues', icon: HeartIcon },
-    { name: 'Medications', icon: ClipboardDocumentIcon },
-    { name: 'Clinicians', icon: UserGroupIcon },
-    { name: 'Chat', icon: ChatBubbleOvalLeftIcon },
-    { name: 'Appointments', icon: CalendarIcon },
-    { name: 'Settings', icon: Cog6ToothIcon },
-  ];
+  if (isLoading) return <div>Loading...</div>;
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-64 bg-teal-900 text-white p-4 space-y-4">
-        <h1 className="text-2xl font-bold">Amarhealth</h1>
-        <nav>
-          {sidebarItems.map((item) => (
-            <button
-              key={item.name}
-              className="flex items-center p-3 space-x-3 w-full rounded-lg hover:bg-teal-700"
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.name}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 p-6">
+      <Sidebar />
+      <div className="flex-1 ml-64 p-6">
+        {/* Rest of your component JSX */}
         <div className="mt-6 relative">
           {/* Page 1: Medication Plans Home */}
           {currentPage === 'MEDICATION_PLANS_HOME' && (

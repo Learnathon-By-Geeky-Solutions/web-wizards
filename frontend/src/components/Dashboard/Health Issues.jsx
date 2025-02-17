@@ -1,14 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../context/authContext';
-import {
-  Squares2X2Icon,
-  ClipboardDocumentIcon,
-  HeartIcon,
-  UserGroupIcon,
-  ChatBubbleOvalLeftIcon,
-  CalendarIcon,
-  Cog6ToothIcon,
-} from '@heroicons/react/24/outline';
+import Sidebar from '../Sidebar';
 
 const HealthIssues = () => {
   const { user, logout } = useContext(AuthContext);
@@ -19,18 +11,6 @@ const HealthIssues = () => {
 
   // Page navigation for Health Issues
   const [currentPage, setCurrentPage] = useState('HEALTH_ISSUES_HOME');
-
-  // Sidebar items
-  const sidebarItems = [
-    { name: 'Dashboard', icon: Squares2X2Icon },
-    { name: 'Medical record', icon: ClipboardDocumentIcon },
-    { name: 'Health Issues', icon: HeartIcon },
-    { name: 'Medications', icon: ClipboardDocumentIcon },
-    { name: 'Clinicians', icon: UserGroupIcon },
-    { name: 'Chat', icon: ChatBubbleOvalLeftIcon },
-    { name: 'Appointments', icon: CalendarIcon },
-    { name: 'Settings', icon: Cog6ToothIcon },
-  ];
 
   // Handlers to switch between pages
   const openLogHealthIssues = () => setCurrentPage('LOG_HEALTH_ISSUES');
@@ -43,24 +23,10 @@ const HealthIssues = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-64 bg-teal-900 text-white p-4 space-y-4">
-        <h1 className="text-2xl font-bold">Amarhealth</h1>
-        <nav>
-          {sidebarItems.map((item) => (
-            <button
-              key={item.name}
-              className="flex items-center p-3 space-x-3 w-full rounded-lg hover:bg-teal-700"
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.name}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
+      <Sidebar />
 
-      {/* Main Content */}
-      <div className="flex-1 p-6">
+      {/* Main Content - Add margin-left to accommodate fixed sidebar */}
+      <div className="flex-1 ml-64 p-6">
         {/* Health Issues Pages */}
         <div className="mt-6 relative">
           {/* Page 1: Health Issues Home */}

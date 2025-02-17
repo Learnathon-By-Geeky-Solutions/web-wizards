@@ -1,14 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../context/authContext';
-import {
-  Squares2X2Icon,
-  ClipboardDocumentIcon,
-  HeartIcon,
-  UserGroupIcon,
-  ChatBubbleOvalLeftIcon,
-  CalendarIcon,
-  Cog6ToothIcon,
-} from '@heroicons/react/24/outline';
+import Sidebar from '../Sidebar';
 
 const Setting = () => {
   const { user, logout } = useContext(AuthContext);
@@ -17,37 +9,7 @@ const Setting = () => {
   const [fullName, setFullName] = useState('Faysal Ahammed');
   const [isLoading, setIsLoading] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  // Message state for showing success feedback
   const [message, setMessage] = useState('');
-
-  const handleProfileInfoClick = () => {
-    alert(`Profile Info\nName: ${user?.name}\nEmail: ${user?.email}`);
-    setIsDropdownOpen(false);
-  };
-
-  const handleLogoutClick = () => {
-    logout();
-    setIsDropdownOpen(false);
-  };
-
-  // Display the first letter of user's name
-  const getFirstLetter = (name) => name?.[0].toUpperCase();
-
-  // Page navigation for Chat (example usage)
-  const [currentPage, setCurrentPage] = useState('Chat');
-
-  // Sidebar items
-  const sidebarItems = [
-    { name: 'Dashboard', icon: Squares2X2Icon },
-    { name: 'Medical record', icon: ClipboardDocumentIcon },
-    { name: 'Health Issues', icon: HeartIcon },
-    { name: 'Medications', icon: ClipboardDocumentIcon },
-    { name: 'Clinicians', icon: UserGroupIcon },
-    { name: 'Chat', icon: ChatBubbleOvalLeftIcon },
-    { name: 'Appointments', icon: CalendarIcon },
-    { name: 'Settings', icon: Cog6ToothIcon },
-  ];
 
   // Settings form states
   const [unitOfMeasurement, setUnitOfMeasurement] = useState('metric');
@@ -104,44 +66,53 @@ const Setting = () => {
     setTimeout(() => setMessage(''), 3000);
   };
 
+  const handleProfileInfoClick = () => {
+    alert(`Profile Info\nName: ${user?.name}\nEmail: ${user?.email}`);
+    setIsDropdownOpen(false);
+  };
+
+  const handleLogoutClick = () => {
+    logout();
+    setIsDropdownOpen(false);
+  };
+
+  // Display the first letter of user's name
+  const getFirstLetter = (name) => name?.[0].toUpperCase();
+
   // Loading state
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex min-h-screen bg-gray-100">
+        <Sidebar />
+        <div className="flex-1 ml-64 p-6">
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-64 bg-teal-900 text-white p-4 space-y-4">
-        <h1 className="text-2xl font-bold">Amarhealth</h1>
-        <nav>
-          {sidebarItems.map((item) => (
-            <button
-              key={item.name}
-              className="flex items-center p-3 space-x-3 w-full rounded-lg hover:bg-teal-700"
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.name}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
-
+      <Sidebar />
+      
       {/* Main Content Area */}
-      <div className="flex-1 p-6">
+      <div className="flex-1 ml-64 p-6">
         {/* User Profile Dropdown */}
         <div className="relative flex justify-end mb-4">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center space-x-2 p-2 rounded-full hover:bg-teal-700"
+            className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100"
           >
-            <div className="w-8 h-8 bg-teal-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-teal-600 rounded-full flex items-center justify-center text-white">
               {getFirstLetter(fullName)}
             </div>
+            <span className="text-gray-700">{fullName}</span>
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-12 w-48 bg-white rounded-md shadow-lg py-1">
+            <div className="absolute right-0 mt-12 w-48 bg-white rounded-lg shadow-lg py-1 z-10">
               <button
                 onClick={handleProfileInfoClick}
                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -159,12 +130,11 @@ const Setting = () => {
         </div>
 
         {/* Settings Form */}
-        <div className="max-w-xl mx-auto p-4 bg-white rounded shadow-md">
-          <h1 className="text-xl font-bold mb-6">Settings</h1>
+        <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-md">
+          <h1 className="text-2xl font-bold mb-6 text-gray-800">Settings</h1>
 
-          {/* Display success message */}
           {message && (
-            <div className="mb-4 p-2 bg-green-100 text-green-800 rounded">
+            <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-lg border border-green-200">
               {message}
             </div>
           )}

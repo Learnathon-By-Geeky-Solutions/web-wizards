@@ -1,21 +1,11 @@
 import React, { useState, useContext, useRef } from 'react';
 import { AuthContext } from '../../context/authContext';
 import {
-  Squares2X2Icon,
-  ClipboardDocumentIcon,
-  HeartIcon,
-  UserGroupIcon,
-  ChatBubbleOvalLeftIcon,
-  CalendarIcon,
-  Cog6ToothIcon,
-  BookOpenIcon,
-  ChartBarIcon,
-  DocumentIcon,
-  BeakerIcon,
-  PhotoIcon,
   ChevronDownIcon,
   ChevronUpIcon,
 } from '@heroicons/react/24/outline';
+import Sidebar from '../Sidebar';
+import TopNav from './TopNav';
 
 /* ------------------ AddCondition Component (for Chronic Conditions) ------------------ */
 const AddCondition = ({ onClose, onConfirm }) => {
@@ -26,16 +16,10 @@ const AddCondition = ({ onClose, onConfirm }) => {
 
   const handleConfirm = () => {
     if (!disease.trim() || !conditionName.trim() || !dateDiagnosed.trim()) {
-      alert('Please fill in all required fields (Disease, Condition Name, and Date Diagnosed).');
+      alert('Please fill in all required fields.');
       return;
     }
-    const conditionData = {
-      disease,
-      conditionName,
-      dateDiagnosed,
-      description,
-    };
-    onConfirm(conditionData);
+    onConfirm({ disease, conditionName, dateDiagnosed, description });
   };
 
   return (
@@ -217,13 +201,12 @@ const AddAllergy = ({ onClose, onConfirm }) => {
 
 /* ------------------ Main MedicalRecord Component ------------------ */
 const MedicalRecord = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
 
   // User information (hard-coded or from API)
-  const [fullName, setFullName] = useState('Faysal Ahammed');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('faysalahammed2021@stud.cou.ac.bd');
-  const firstLetter = fullName.split(' ')[0]?.charAt(0) || 'U';
+  const [fullName] = useState('Faysal Ahammed');
+  const [email] = useState('faysalahammed2021@stud.cou.ac.bd');
+  const firstLetter = fullName.charAt(0);
 
   // Medical info
   const [bloodGroup, setBloodGroup] = useState('None');
@@ -253,24 +236,6 @@ const MedicalRecord = () => {
   };
 
   // Sidebar & Top Navigation items
-  const sidebarItems = [
-    { name: 'Dashboard', icon: Squares2X2Icon },
-    { name: 'Medical record', icon: ClipboardDocumentIcon },
-    { name: 'Health Issues', icon: HeartIcon },
-    { name: 'Medications', icon: ClipboardDocumentIcon },
-    { name: 'Clinicians', icon: UserGroupIcon },
-    { name: 'Chat', icon: ChatBubbleOvalLeftIcon },
-    { name: 'Appointments', icon: CalendarIcon },
-    { name: 'Settings', icon: Cog6ToothIcon },
-  ];
-  const topNavItems = [
-    { name: 'Dashboard', icon: Squares2X2Icon },
-    { name: 'Logbook', icon: BookOpenIcon },
-    { name: 'Symptoms', icon: HeartIcon },
-    { name: 'Charts', icon: ChartBarIcon },
-    { name: 'Documents', icon: DocumentIcon },
-    { name: 'Lab Results', icon: BeakerIcon },
-  ];
   const bloodGroups = ['None', 'A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
   // Additional Information collapsible
@@ -297,41 +262,10 @@ const MedicalRecord = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-64 bg-teal-900 text-white p-4 space-y-4">
-        <h1 className="text-2xl font-bold">Amarhealth</h1>
-        <nav>
-          {sidebarItems.map((item) => (
-            <button
-              key={item.name}
-              className="flex items-center p-3 space-x-3 w-full rounded-lg hover:bg-teal-700"
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.name}</span>
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 p-6">
-        {/* Top Navigation */}
-        <div className="flex justify-between items-center bg-white p-3 shadow-md rounded-lg">
-          <div className="flex space-x-6">
-            {topNavItems.map((item) => (
-              <button key={item.name} className="flex items-center space-x-2 text-gray-600 hover:text-blue-600">
-                <item.icon className="w-5 h-5" />
-                <span>{item.name}</span>
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center space-x-3">
-            <span className="font-semibold">{fullName}</span>
-            <img src="/user-avatar.png" alt="User" className="w-8 h-8 rounded-full" />
-          </div>
-        </div>
-
-        {/* Profile & Medical Info Section */}
+      <Sidebar />
+      <div className="flex-1 ml-64 p-6">
+        <TopNav fullName={fullName} />
+        {/* Main Content */}
         <div className="bg-white p-6 rounded-lg shadow-lg mt-6">
           <div className="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-6">
             {/* Photo / Upload Section */}
