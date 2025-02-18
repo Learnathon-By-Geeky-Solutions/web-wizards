@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../context/authContext';
 import Sidebar from '../Sidebar';
+import UserProfile from '../Navbar/UserProfile';
 import {
   CalendarIcon,
   CalendarDaysIcon,
@@ -31,30 +32,14 @@ const EmptyState = ({ currentUser, appointmentFilter }) => (
 );
 
 const Appointments = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   
   // States
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [appointmentFilter, setAppointmentFilter] = useState('all');
   const [isLoading] = useState(false);
 
-  // Current user information
-  const currentUser = 'Faysal0009';
   const currentDateTime = '2025-02-16 11:09:10';
   const appointments = [];
-
-  // Handlers
-  const handleProfileInfoClick = () => {
-    alert(`Profile Info\nName: ${user?.name}\nEmail: ${user?.email}`);
-    setIsDropdownOpen(false);
-  };
-
-  const handleLogoutClick = () => {
-    logout();
-    setIsDropdownOpen(false);
-  };
-
-  const getFirstLetter = (name) => name?.[0].toUpperCase();
 
   if (isLoading) {
     return (
@@ -84,35 +69,8 @@ const Appointments = () => {
             </output>
           </div>
           
-          {/* User Profile Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100"
-            >
-              <div className="w-8 h-8 bg-teal-600 rounded-full flex items-center justify-center text-white">
-                {getFirstLetter(currentUser)}
-              </div>
-              <span className="text-gray-700">{currentUser}</span>
-            </button>
-
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-10">
-                <button
-                  onClick={handleProfileInfoClick}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Profile Info
-                </button>
-                <button
-                  onClick={handleLogoutClick}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Replace the old profile dropdown with UserProfile component */}
+          <UserProfile />
         </header>
 
         {/* Filter Section */}
@@ -132,7 +90,7 @@ const Appointments = () => {
         <section className="bg-white rounded-lg shadow-lg p-6">
           {appointments.length === 0 ? (
             <EmptyState 
-              currentUser={currentUser}
+              currentUser={user?.name}
               appointmentFilter={appointmentFilter}
             />
           ) : (

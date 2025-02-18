@@ -16,7 +16,7 @@ import Symptoms from './components/MedicalRecord/Symptoms';
 import HealthIssues from './components/Dashboard/Health Issues';
 import Chat from './components/Dashboard/Chat';
 import Appointments from './components/Dashboard/Appointments';
-import Setting from './components/setting/Setting';
+import Settings from './pages/Settings';
 import MedicationPlans from './components/Medication/Medication Plans';
 import Medication from './components/Medication/Medication';
 import Clinicians from './pages/Clinicians';
@@ -58,7 +58,7 @@ function App() {
           <Route path="/healthissues" element={<PublicRoute element={<HealthIssues />} />} />
           <Route path="/chat" element={<PublicRoute element={<Chat />} />} />
           <Route path="/appointments" element={<PublicRoute element={<Appointments />} />} />
-          <Route path="/settings" element={<PublicRoute element={<Setting />} />} />
+          <Route path="/settings" element={<PublicRoute element={<Settings />} />} />
           <Route path="/medicationplans" element={<PublicRoute element={<MedicationPlans />} />} />
           <Route path="/medication" element={<PublicRoute element={<Medication />} />} />
           <Route path="/clinicians" element={<PublicRoute element={<Clinicians />} />} />

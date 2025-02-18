@@ -119,3 +119,8 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
             return DoctorProfile.objects.get(user=user)
         elif user.user_type == 'Patient':
             return PatientProfile.objects.get(user=user)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)

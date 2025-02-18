@@ -39,3 +39,25 @@ export const loginUser = async (data) => {
       throw error;
     }
 };
+
+export const getUserProfile = async () => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    const response = await fetch('http://127.0.0.1:8000/api/users/profile/', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch user profile');
+    }
+
+    return await response.json();
+  } catch (error) {
+    throw error;
+  }
+};
+
