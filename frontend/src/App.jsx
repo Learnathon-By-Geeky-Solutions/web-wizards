@@ -1,5 +1,5 @@
-import React, { useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useContext, useEffect } from 'react';
+import { createBrowserRouter, RouterProvider, Navigate, useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import Home from './pages/Home';
 import Test from './pages/Test';
@@ -20,10 +20,19 @@ import Settings from './pages/Settings';
 import MedicationPlans from './components/Medication/Medication Plans';
 import Medication from './components/Medication/Medication';
 import Clinicians from './pages/Clinicians';
+import NotFound from './pages/NotFound';
 
 const PrivateRoute = ({ element }) => {
-  const { isAuthenticated}  = true;
-  return isAuthenticated ? element : <Navigate to="/login" />;
+  const { isAuthenticated } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  return isAuthenticated ? element : null;
 };
 
 PrivateRoute.propTypes = {
@@ -31,39 +40,108 @@ PrivateRoute.propTypes = {
 };
 
 const PublicRoute = ({ element }) => {
-  const  {isAuthenticated } = true;
-  return !isAuthenticated ? element : <Navigate to="/dashboard" />;
+  const { isAuthenticated } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
+  return !isAuthenticated ? element : null;
 };
 
 PublicRoute.propTypes = {
   element: PropTypes.element.isRequired,
 };
 
+// Define router configuration
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Home />,
+  },
+  {
+    path: "/test",
+    element: <Test />,
+  },
+  {
+    path: "/registration",
+    element: <PublicRoute element={<Registration />} />,
+  },
+  {
+    path: "/login",
+    element: <PublicRoute element={<Login />} />,
+  },
+  {
+    path: "/dashboard",
+    element: <PrivateRoute element={<Dashboard />} />,
+  },
+  {
+    path: "/medicalrecord",
+    element: <PrivateRoute element={<MedicalRecord />} />,
+    children: [
+      {
+        path: "logbook",
+        element: <PrivateRoute element={<Logbook />} />,
+      },
+      {
+        path: "charts",
+        element: <PrivateRoute element={<Charts />} />,
+      },
+      {
+        path: "symptoms",
+        element: <PrivateRoute element={<Symptoms />} />,
+      },
+      {
+        path: "labresult",
+        element: <PrivateRoute element={<LabResult />} />,
+      },
+      {
+        path: "documents",
+        element: <PrivateRoute element={<Documents />} />,
+      },
+    ],
+  },
+  {
+    path: "/healthissues",
+    element: <PrivateRoute element={<HealthIssues />} />,
+  },
+  {
+    path: "/chat",
+    element: <PrivateRoute element={<Chat />} />,
+  },
+  {
+    path: "/appointments",
+    element: <PrivateRoute element={<Appointments />} />,
+  },
+  {
+    path: "/settings",
+    element: <PrivateRoute element={<Settings />} />,
+  },
+  {
+    path: "/medication",
+    element: <PrivateRoute element={<Medication />} />,
+  },
+  {
+    path: "/medicationplans",
+    element: <PrivateRoute element={<MedicationPlans />} />,
+  },
+  {
+    path: "/clinicians",
+    element: <PrivateRoute element={<Clinicians />} />,
+  },
+  {
+    path: "*",
+    element: <NotFound />,
+  },
+]);
+
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/test" element={<Test />} />
-          <Route path="/registration" element={<PublicRoute element={<Registration />} />} />
-          <Route path="/login" element={<PublicRoute element={<Login />} />} />
-          <Route path="/dashboard" element={<PublicRoute element={<Dashboard />} />} />
-          <Route path="/medicalrecord" element={<PublicRoute element={<MedicalRecord />} />} />
-          <Route path="/logbook" element={<PublicRoute element={<Logbook />} />} />
-          <Route path="/charts" element={<PublicRoute element={<Charts />} />} />
-          <Route path="/symptoms" element={<PublicRoute element={<Symptoms />} />} />
-          <Route path="/labresult" element={<PublicRoute element={<LabResult />} />} />
-          <Route path="/documents" element={<PublicRoute element={<Documents />} />} />
-          <Route path="/healthissues" element={<PublicRoute element={<HealthIssues />} />} />
-          <Route path="/chat" element={<PublicRoute element={<Chat />} />} />
-          <Route path="/appointments" element={<PublicRoute element={<Appointments />} />} />
-          <Route path="/settings" element={<PublicRoute element={<Settings />} />} />
-          <Route path="/medicationplans" element={<PublicRoute element={<MedicationPlans />} />} />
-          <Route path="/medication" element={<PublicRoute element={<Medication />} />} />
-          <Route path="/clinicians" element={<PublicRoute element={<Clinicians />} />} />
-        </Routes>
-      </Router>
+      <RouterProvider router={router} />
     </AuthProvider>
   );
 }
