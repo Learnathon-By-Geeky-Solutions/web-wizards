@@ -8,17 +8,18 @@ import {
   DocumentIcon,
   BeakerIcon,
 } from '@heroicons/react/24/outline';
+import UserProfile from '../Navbar/UserProfile';
 
 const topNavItems = [
   { name: 'Dashboard', icon: Squares2X2Icon, path: '/dashboard' },
-  { name: 'Logbook', icon: BookOpenIcon, path: '/logbook' },
-  { name: 'Symptoms', icon: HeartIcon, path: '/symptoms' },
-  { name: 'Charts', icon: ChartBarIcon, path: '/charts' },
-  { name: 'Documents', icon: DocumentIcon, path: '/documents' },
-  { name: 'Lab Results', icon: BeakerIcon, path: '/labresult' },
+  { name: 'Logbook', icon: BookOpenIcon, path: '/medicalrecord/logbook' },
+  { name: 'Symptoms', icon: HeartIcon, path: '/medicalrecord/symptoms' },
+  { name: 'Charts', icon: ChartBarIcon, path: '/medicalrecord/charts' },
+  { name: 'Documents', icon: DocumentIcon, path: '/medicalrecord/documents' },
+  { name: 'Lab Results', icon: BeakerIcon, path: '/medicalrecord/labresult' },
 ];
 
-const TopNav = ({ fullName }) => {
+const TopNav = () => {
   return (
     <div className="flex justify-between items-center bg-white p-3 shadow-md rounded-lg mb-6">
       <div className="flex space-x-6">
@@ -33,10 +34,7 @@ const TopNav = ({ fullName }) => {
           </Link>
         ))}
       </div>
-      <div className="flex items-center space-x-3">
-        <span className="font-semibold">{fullName}</span>
-        <img src="/user-avatar.png" alt="User" className="w-8 h-8 rounded-full" />
-      </div>
+      <UserProfile />
     </div>
   );
 };

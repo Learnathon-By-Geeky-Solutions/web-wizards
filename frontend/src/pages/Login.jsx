@@ -17,9 +17,8 @@ const Login = () => {
 
   const onSubmit = async (data) => {
     try {
-      const response = await loginUser(data);
-      console.log('Login successful:', response);
-      login(response.access);
+      // Don't call loginUser directly, use the login function from context
+      await login(data);
       navigate('/dashboard');
     } catch (error) {
       console.error('Login failed:', error);

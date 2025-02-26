@@ -2,7 +2,8 @@ from django.contrib.auth.hashers import make_password, check_password
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
+from rest_framework.views import APIView
 from .models import Users, AdminProfile, DoctorProfile, PatientProfile
 from .serializers import UserSerializer, AdminProfileSerializer, DoctorProfileSerializer, PatientProfileSerializer, LoginSerializer
 
@@ -124,3 +125,19 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
+
+
+class LogoutView(APIView):
+    """
+    Logout View - Blacklist the refresh token
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data.get('refresh_token')
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
+        except TokenError:
+            return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)

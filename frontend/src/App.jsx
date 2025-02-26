@@ -8,7 +8,6 @@ import Login from './pages/Login';
 import Dashboard from './components/Dashboard/Dashboard';
 import { AuthProvider, AuthContext } from './context/authContext';
 import MedicalRecord from './components/MedicalRecord/MedicalRecord';
-import Charts from './components/MedicalRecord/Charts';
 import Documents from './components/MedicalRecord/Documents';
 import Logbook from './components/MedicalRecord/Logbook';
 import LabResult from './components/MedicalRecord/LabResult';
@@ -21,6 +20,8 @@ import MedicationPlans from './components/Medication/Medication Plans';
 import Medication from './components/Medication/Medication';
 import Clinicians from './pages/Clinicians';
 import NotFound from './pages/NotFound';
+import Charts from './components/MedicalRecord/Charts';
+import MedicalRecordLayout from './components/MedicalRecord/MedicalRecordLayout';
 
 const PrivateRoute = ({ element }) => {
   const { isAuthenticated } = useContext(AuthContext);
@@ -41,6 +42,7 @@ PrivateRoute.propTypes = {
 
 const PublicRoute = ({ element }) => {
   const { isAuthenticated } = useContext(AuthContext);
+  console.log(isAuthenticated);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -80,29 +82,33 @@ const router = createBrowserRouter([
   },
   {
     path: "/medicalrecord",
-    element: <PrivateRoute element={<MedicalRecord />} />,
+    element: <PrivateRoute element={<MedicalRecordLayout />} />,
     children: [
       {
+        path: "", // Add an index route if needed
+        element: <MedicalRecord />
+      },
+      {
         path: "logbook",
-        element: <PrivateRoute element={<Logbook />} />,
+        element: <Logbook />
       },
       {
         path: "charts",
-        element: <PrivateRoute element={<Charts />} />,
+        element: <Charts /> // Use Charts directly instead of ChartPage
       },
       {
         path: "symptoms",
-        element: <PrivateRoute element={<Symptoms />} />,
+        element: <Symptoms />
       },
       {
         path: "labresult",
-        element: <PrivateRoute element={<LabResult />} />,
+        element: <LabResult />
       },
       {
         path: "documents",
-        element: <PrivateRoute element={<Documents />} />,
-      },
-    ],
+        element: <Documents />
+      }
+    ]
   },
   {
     path: "/healthissues",

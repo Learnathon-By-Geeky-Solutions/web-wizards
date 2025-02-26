@@ -261,171 +261,164 @@ const MedicalRecord = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      <div className="flex-1 ml-64 p-6">
-        <TopNav fullName={fullName} />
-        {/* Main Content */}
-        <div className="bg-white p-6 rounded-lg shadow-lg mt-6">
-          <div className="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-6">
-            {/* Photo / Upload Section */}
-            <div className="flex flex-col items-center">
-              {photo ? (
-                <img
-                  src={URL.createObjectURL(photo)}
-                  alt="Profile Preview"
-                  className="w-24 h-24 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-24 h-24 bg-gray-300 rounded-full flex items-center justify-center">
-                  <span className="text-xl font-bold text-gray-600">{firstLetter}</span>
-                </div>
-              )}
-              <input
-                type="file"
-                ref={fileInputRef}
-                style={{ display: 'none' }}
-                accept="image/*"
-                onChange={handlePhotoChange}
-              />
-              <button onClick={handleAddPhotoClick} className="mt-3 text-blue-600 hover:text-blue-800">
-                Add photo
-              </button>
-              <h2 className="text-xl font-semibold mt-3">{fullName}</h2>
-              <p className="text-gray-500">PIN: C4SDW9N5A5</p>
-              <button className="mt-3 text-blue-600 hover:text-blue-800">Edit Profile</button>
-              <button className="mt-1 text-gray-500 hover:text-gray-700">Download Medical History</button>
-              <button className="mt-1 text-red-500 hover:text-red-700">Delete</button>
+    <div className="bg-white p-6 rounded-lg shadow-lg">
+      <div className="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-6">
+        {/* Photo / Upload Section */}
+        <div className="flex flex-col items-center">
+          {photo ? (
+            <img
+              src={URL.createObjectURL(photo)}
+              alt="Profile Preview"
+              className="w-24 h-24 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-24 h-24 bg-gray-300 rounded-full flex items-center justify-center">
+              <span className="text-xl font-bold text-gray-600">{firstLetter}</span>
             </div>
+          )}
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            accept="image/*"
+            onChange={handlePhotoChange}
+          />
+          <button onClick={handleAddPhotoClick} className="mt-3 text-blue-600 hover:text-blue-800">
+            Add photo
+          </button>
+          <h2 className="text-xl font-semibold mt-3">{fullName}</h2>
+          <p className="text-gray-500">PIN: C4SDW9N5A5</p>
+          <button className="mt-3 text-blue-600 hover:text-blue-800">Edit Profile</button>
+          <button className="mt-1 text-gray-500 hover:text-gray-700">Download Medical History</button>
+          <button className="mt-1 text-red-500 hover:text-red-700">Delete</button>
+        </div>
 
-            {/* Basic Info & Additional Information */}
-            <div className="flex-1">
-              <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Blood Group */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">Blood Group</label>
-                  <select
-                    value={bloodGroup}
-                    onChange={(e) => setBloodGroup(e.target.value)}
-                    className="w-full p-2 border rounded"
-                  >
-                    {bloodGroups.map((group) => (
-                      <option key={group} value={group}>
-                        {group}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {/* Height */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">Height (cm)</label>
-                  <input
-                    type="number"
-                    value={height}
-                    onChange={(e) => setHeight(e.target.value)}
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-                {/* Weight */}
-                <div>
-                  <label className="block text-sm font-medium mb-1">Weight (kg)</label>
-                  <input
-                    type="number"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-              </div>
-
-              {/* Additional Information (Collapsible) */}
-              <div className="mt-6">
-                <button
-                  onClick={() => setIsAdditionalInfoOpen(!isAdditionalInfoOpen)}
-                  className="flex items-center justify-between w-full px-0 py-2"
-                >
-                  <span className="text-lg font-semibold">Additional Information</span>
-                  {isAdditionalInfoOpen ? (
-                    <ChevronUpIcon className="w-5 h-5" />
-                  ) : (
-                    <ChevronDownIcon className="w-5 h-5" />
-                  )}
-                </button>
-                {isAdditionalInfoOpen && (
-                  <div className="mt-4 space-y-6">
-                    {/* Chronic Conditions */}
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold">Chronic Conditions</h3>
-                        <button
-                          className="text-blue-600 hover:text-blue-800"
-                          onClick={() => setIsAddConditionModalOpen(true)}
-                        >
-                          + Add new entry
-                        </button>
-                      </div>
-                      {chronicConditions.length === 0 ? (
-                        <div className="bg-gray-50 border border-dashed border-gray-300 rounded p-4 mt-2 flex items-center justify-center text-gray-500">
-                          <p>No Chronic Conditions</p>
-                        </div>
-                      ) : (
-                        <div className="mt-2 space-y-2">
-                          {chronicConditions.map((condition, index) => (
-                            <div key={index} className="bg-gray-50 border border-gray-300 rounded p-2">
-                              <p className="font-semibold">{condition.disease}</p>
-                              <p>{condition.conditionName}</p>
-                              <p>Date Diagnosed: {condition.dateDiagnosed}</p>
-                              {condition.description && <p>Description: {condition.description}</p>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Allergies */}
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold">Allergies</h3>
-                        <button
-                          className="text-blue-600 hover:text-blue-800"
-                          onClick={() => setIsAddAllergyModalOpen(true)}
-                        >
-                          + Add new entry
-                        </button>
-                      </div>
-                      {allergies.length === 0 ? (
-                        <div className="bg-gray-50 border border-dashed border-gray-300 rounded p-4 mt-2 flex items-center justify-center text-gray-500">
-                          <p>No Allergies</p>
-                        </div>
-                      ) : (
-                        <div className="mt-2 space-y-2">
-                          {allergies.map((allergy, index) => (
-                            <div key={index} className="bg-gray-50 border border-gray-300 rounded p-2">
-                              <p className="font-semibold">{allergy.allergyType}</p>
-                              <p>Date Diagnosed: {allergy.dateDiagnosed}</p>
-                              {allergy.description && <p>Description: {allergy.description}</p>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+        {/* Basic Info & Additional Information */}
+        <div className="flex-1">
+          <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Blood Group */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Blood Group</label>
+              <select
+                value={bloodGroup}
+                onChange={(e) => setBloodGroup(e.target.value)}
+                className="w-full p-2 border rounded"
+              >
+                {bloodGroups.map((group) => (
+                  <option key={group} value={group}>
+                    {group}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Height */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Height (cm)</label>
+              <input
+                type="number"
+                value={height}
+                onChange={(e) => setHeight(e.target.value)}
+                className="w-full p-2 border rounded"
+              />
+            </div>
+            {/* Weight */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Weight (kg)</label>
+              <input
+                type="number"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                className="w-full p-2 border rounded"
+              />
             </div>
           </div>
 
-          {/* Update Button (Disabled) */}
+          {/* Additional Information (Collapsible) */}
           <div className="mt-6">
             <button
-              className="px-6 py-2 bg-gray-300 text-gray-600 rounded cursor-not-allowed"
-              disabled
+              onClick={() => setIsAdditionalInfoOpen(!isAdditionalInfoOpen)}
+              className="flex items-center justify-between w-full px-0 py-2"
             >
-              Update
+              <span className="text-lg font-semibold">Additional Information</span>
+              {isAdditionalInfoOpen ? (
+                <ChevronUpIcon className="w-5 h-5" />
+              ) : (
+                <ChevronDownIcon className="w-5 h-5" />
+              )}
             </button>
+            {isAdditionalInfoOpen && (
+              <div className="mt-4 space-y-6">
+                {/* Chronic Conditions */}
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">Chronic Conditions</h3>
+                    <button
+                      className="text-blue-600 hover:text-blue-800"
+                      onClick={() => setIsAddConditionModalOpen(true)}
+                    >
+                      + Add new entry
+                    </button>
+                  </div>
+                  {chronicConditions.length === 0 ? (
+                    <div className="bg-gray-50 border border-dashed border-gray-300 rounded p-4 mt-2 flex items-center justify-center text-gray-500">
+                      <p>No Chronic Conditions</p>
+                    </div>
+                  ) : (
+                    <div className="mt-2 space-y-2">
+                      {chronicConditions.map((condition, index) => (
+                        <div key={index} className="bg-gray-50 border border-gray-300 rounded p-2">
+                          <p className="font-semibold">{condition.disease}</p>
+                          <p>{condition.conditionName}</p>
+                          <p>Date Diagnosed: {condition.dateDiagnosed}</p>
+                          {condition.description && <p>Description: {condition.description}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Allergies */}
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">Allergies</h3>
+                    <button
+                      className="text-blue-600 hover:text-blue-800"
+                      onClick={() => setIsAddAllergyModalOpen(true)}
+                    >
+                      + Add new entry
+                    </button>
+                  </div>
+                  {allergies.length === 0 ? (
+                    <div className="bg-gray-50 border border-dashed border-gray-300 rounded p-4 mt-2 flex items-center justify-center text-gray-500">
+                      <p>No Allergies</p>
+                    </div>
+                  ) : (
+                    <div className="mt-2 space-y-2">
+                      {allergies.map((allergy, index) => (
+                        <div key={index} className="bg-gray-50 border border-gray-300 rounded p-2">
+                          <p className="font-semibold">{allergy.allergyType}</p>
+                          <p>Date Diagnosed: {allergy.dateDiagnosed}</p>
+                          {allergy.description && <p>Description: {allergy.description}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
+      </div>
+
+      {/* Update Button */}
+      <div className="mt-6">
+        <button
+          className="px-6 py-2 bg-gray-300 text-gray-600 rounded cursor-not-allowed"
+          disabled
+        >
+          Update
+        </button>
       </div>
 
       {/* Modals */}

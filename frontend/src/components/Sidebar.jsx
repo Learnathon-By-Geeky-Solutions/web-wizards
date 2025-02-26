@@ -5,7 +5,6 @@ import {
   ClipboardDocumentIcon,
   HeartIcon,
   UserGroupIcon,
-  ChatBubbleOvalLeftIcon,
   CalendarIcon,
   Cog6ToothIcon,
   BeakerIcon,
@@ -24,6 +23,12 @@ function Sidebar() {
     { name: 'Settings', icon: Cog6ToothIcon, path: '/settings' },
   ];
 
+  const isActiveRoute = (path) => {
+    // Check if the current path starts with the menu item path
+    // This handles both exact matches and nested routes
+    return location.pathname.startsWith(path);
+  };
+
   return (
     <div className="w-64 bg-teal-900 min-h-screen text-white p-4 space-y-4 fixed left-0">
       <div className="flex items-center space-x-3 mb-8">
@@ -37,7 +42,7 @@ function Sidebar() {
       
       <nav className="space-y-2">
         {sidebar_menu.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = isActiveRoute(item.path);
           
           return (
             <Link

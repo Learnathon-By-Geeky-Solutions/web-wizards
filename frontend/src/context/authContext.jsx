@@ -1,44 +1,65 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { getUserProfile } from '../api/authUser';
+import { loginUser, logoutUser, getUserProfile } from '../api/authUser';
 
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      setIsAuthenticated(true);
-      fetchUserProfile();
-    }
+    const initAuth = async () => {
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        try {
+          const userData = await getUserProfile();
+          setUser(userData);
+          setIsAuthenticated(true);
+        } catch (error) {
+          localStorage.removeItem('accessToken');
+        }
+      }
+      setLoading(false);
+    };
+
+    initAuth();
   }, []);
 
-  const fetchUserProfile = async () => {
+  const login = async (credentials) => {
     try {
+      const response = await loginUser(credentials);
+      // Store both tokens
+      localStorage.setItem('accessToken', response.access);
+      localStorage.setItem('refreshToken', response.refresh);
+      
+      // Get user profile after login
       const userData = await getUserProfile();
-      // Extract user data from the nested structure
-      setUser(userData.user);
+      setUser(userData);
+      setIsAuthenticated(true);
+      return response;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('Login error:', error);
+      throw error;
     }
   };
 
-  const login = async (token) => {
-    localStorage.setItem('accessToken', token);
-    setIsAuthenticated(true);
-    await fetchUserProfile();
+  const logout = async () => {
+    try {
+      await logoutUser();
+    } finally {
+      localStorage.removeItem('accessToken');
+      setUser(null);
+      setIsAuthenticated(false);
+    }
   };
 
-  const logout = () => {
-    localStorage.removeItem('accessToken');
-    setIsAuthenticated(false);
-    setUser(null);
-  };
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, user }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
