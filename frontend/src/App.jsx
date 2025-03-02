@@ -5,21 +5,20 @@ import Home from './pages/Home';
 import Test from './pages/Test';
 import Registration from './pages/Registration';
 import Login from './pages/Login';
-import Dashboard from './components/Dashboard/Dashboard';
+import Settings from './pages/Settings';
+import Medication from './pages/Medication';
+import Clinicians from './pages/Clinicians';
+import NotFound from './pages/NotFound';
+import HealthIssues from './pages/HealthIssues'
+import Chat from './pages/Chat';
+import Appointments from './pages/Appointments';
+import Dashboard from './pages/Dashboard';
 import { AuthProvider, AuthContext } from './context/authContext';
 import MedicalRecord from './components/MedicalRecord/MedicalRecord';
 import Documents from './components/MedicalRecord/Documents';
 import Logbook from './components/MedicalRecord/Logbook';
 import LabResult from './components/MedicalRecord/LabResult';
 import Symptoms from './components/MedicalRecord/Symptoms';
-import HealthIssues from './components/Dashboard/Health Issues';
-import Chat from './components/Dashboard/Chat';
-import Appointments from './components/Dashboard/Appointments';
-import Settings from './pages/Settings';
-import MedicationPlans from './components/Medication/Medication Plans';
-import Medication from './components/Medication/Medication';
-import Clinicians from './pages/Clinicians';
-import NotFound from './pages/NotFound';
 import Charts from './components/MedicalRecord/Charts';
 import MedicalRecordLayout from './components/MedicalRecord/MedicalRecordLayout';
 
@@ -129,10 +128,6 @@ const router = createBrowserRouter([
   {
     path: "/medication",
     element: <PrivateRoute element={<Medication />} />,
-  },
-  {
-    path: "/medicationplans",
-    element: <PrivateRoute element={<MedicationPlans />} />,
   },
   {
     path: "/clinicians",

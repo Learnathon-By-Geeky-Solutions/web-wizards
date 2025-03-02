@@ -17,7 +17,7 @@ function Sidebar() {
     { name: 'Dashboard', icon: Squares2X2Icon, path: '/dashboard' },
     { name: 'Medical Record', icon: ClipboardDocumentIcon, path: '/medicalrecord' },
     { name: 'Health Issues', icon: HeartIcon, path: '/healthissues' },
-    { name: 'Medications', icon: BeakerIcon, path: '/medicationplans' },
+    { name: 'Medications', icon: BeakerIcon, path: '/medication' },
     { name: 'Clinicians', icon: UserGroupIcon, path: '/clinicians' },
     { name: 'Appointments', icon: CalendarIcon, path: '/appointments' },
     { name: 'Settings', icon: Cog6ToothIcon, path: '/settings' },
