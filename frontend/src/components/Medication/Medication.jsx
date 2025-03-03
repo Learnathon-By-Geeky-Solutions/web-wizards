@@ -1,23 +1,13 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../context/authContext';
 import Sidebar from '../Sidebar';
-import { ChatBubbleOvalLeftIcon } from '@heroicons/react/24/outline';
 
-const Chat = () => {
-  const { user, logout } = useContext(AuthContext);
+const Medication = () => {
+  const { user } = useContext(AuthContext);
   const [fullName] = useState('Faysal Ahammed');
   const [isLoading] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  const handleProfileInfoClick = () => {
-    alert(`Profile Info\nName: ${user?.name}\nEmail: ${user?.email}`);
-    setIsDropdownOpen(false);
-  };
-
-  const handleLogoutClick = () => {
-    logout();
-    setIsDropdownOpen(false);
-  };
+  const [appointmentFilter, setAppointmentFilter] = useState('all');
 
   // Display the first letter of user's name
   const getFirstLetter = (name) => name?.[0].toUpperCase();
@@ -29,10 +19,14 @@ const Chat = () => {
   return (
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
+      
+      {/* Main Content */}
       <div className="flex-1 ml-64 p-6">
-        {/* Header with Profile Dropdown */}
+        {/* Header Section with Title and Profile */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Recent Chat Messages</h2>
+          <h2 className="text-2xl font-bold">Medication</h2>
+          
+          {/* User Profile Dropdown */}
           <div className="relative">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -46,13 +40,11 @@ const Chat = () => {
             {isDropdownOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
                 <button
-                  onClick={handleProfileInfoClick}
                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
                   Profile Info
                 </button>
                 <button
-                  onClick={handleLogoutClick}
                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
                   Logout
@@ -62,13 +54,26 @@ const Chat = () => {
           </div>
         </div>
 
-        {/* Chat Content Area */}
+        {/* Filter Section */}
+        <div className="flex justify-end mb-6">
+          <select 
+            className="border rounded px-3 py-2 bg-white text-gray-700 w-48"
+            value={appointmentFilter}
+            onChange={(e) => setAppointmentFilter(e.target.value)}
+          >
+            <option value="all">All</option>
+            <option value="completed">Completed Appointments</option>
+            <option value="pending">Pending Appointments</option>
+          </select>
+        </div>
+
+        {/* Appointments Content */}
         <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-500">No messages to display</p>
+          <p className="text-gray-500">No appointments to display</p>
         </div>
       </div>
     </div>
   );
 };
 
-export default Chat;
+export default Medication;
