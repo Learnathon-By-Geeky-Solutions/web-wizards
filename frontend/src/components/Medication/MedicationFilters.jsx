@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const MedicationFilters = ({ 
   statusFilter, 
@@ -52,6 +53,15 @@ const MedicationFilters = ({
       </div>
     </div>
   );
+};
+
+MedicationFilters.propTypes = {
+  statusFilter: PropTypes.string.isRequired,
+  setStatusFilter: PropTypes.func.isRequired,
+  healthIssueFilter: PropTypes.string.isRequired,
+  setHealthIssueFilter: PropTypes.func.isRequired,
+  searchTerm: PropTypes.string.isRequired,
+  setSearchTerm: PropTypes.func.isRequired,
 };
 
 export default MedicationFilters;

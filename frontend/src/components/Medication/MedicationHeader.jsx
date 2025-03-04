@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 
-const MedicationHeader = () => {
+const MedicationHeader = ({ fullName }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [fullName] = useState('Faysal Ahammed');
   
   // Display the first letter of user's name
   const getFirstLetter = (name) => name?.[0].toUpperCase();
@@ -39,6 +39,10 @@ const MedicationHeader = () => {
       </div>
     </div>
   );
+};
+
+MedicationHeader.propTypes = {
+  fullName: PropTypes.string.isRequired,
 };
 
 export default MedicationHeader;

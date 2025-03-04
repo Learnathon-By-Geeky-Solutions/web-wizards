@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import DateTimeInput from './DateTimeInput';
 
 const AddPlanModal = ({ onClose, onSave }) => {
@@ -37,10 +38,11 @@ const AddPlanModal = ({ onClose, onSave }) => {
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
               Medication name*
             </label>
             <input
+              id="description"
               type="text"
               name="description"
               value={formData.description}
@@ -51,10 +53,11 @@ const AddPlanModal = ({ onClose, onSave }) => {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label htmlFor="status" className="block text-sm font-medium text-gray-700">
               Status
             </label>
             <select
+              id="status"
               name="status"
               value={formData.status}
               onChange={handleChange}
@@ -85,6 +88,11 @@ const AddPlanModal = ({ onClose, onSave }) => {
       </div>
     </div>
   );
+};
+
+AddPlanModal.propTypes = {
+  onClose: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
 };
 
 export default AddPlanModal;

@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const AddPlanButton = ({ onClick }) => {
   return (
@@ -9,6 +10,10 @@ const AddPlanButton = ({ onClick }) => {
       +
     </button>
   );
+};
+
+AddPlanButton.propTypes = {
+  onClick: PropTypes.func.isRequired,
 };
 
 export default AddPlanButton;

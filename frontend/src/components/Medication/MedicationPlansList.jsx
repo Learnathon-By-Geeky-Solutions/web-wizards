@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const MedicationPlansList = ({ plans }) => {
@@ -40,6 +41,16 @@ const MedicationPlansList = ({ plans }) => {
       ))}
     </div>
   );
+};
+
+MedicationPlansList.propTypes = {
+  plans: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      description: PropTypes.string.isRequired,
+      effectiveDate: PropTypes.string.isRequired,
+    })
+  ).isRequired,
 };
 
 export default MedicationPlansList;
