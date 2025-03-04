@@ -38,8 +38,9 @@ const LogHealthIssueModal = ({ onClose, onSave }) => {
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Health Issue Title*</label>
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700">Health Issue Title*</label>
             <input 
+              id="title"
               type="text" 
               name="title"
               value={formData.title}
@@ -50,8 +51,9 @@ const LogHealthIssueModal = ({ onClose, onSave }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Notes</label>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Notes</label>
             <textarea
+              id="notes"
               name="notes"
               value={formData.notes}
               onChange={handleChange}
@@ -78,6 +80,7 @@ const LogHealthIssueModal = ({ onClose, onSave }) => {
     </div>
   );
 };
+
 LogHealthIssueModal.propTypes = {
   onClose: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,

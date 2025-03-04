@@ -23,7 +23,7 @@ function Navbar() {
         </div>
 
         {/* Navigation Links */}
-        <div className="hidden md:flex space-x-8">
+        {/* <div className="hidden md:flex space-x-8">
           <a href="#" className="text-green-800 hover:text-green-600">
             For users
           </a>
@@ -33,7 +33,7 @@ function Navbar() {
           <a href="#" className="text-green-800 hover:text-green-600">
             News
           </a>
-        </div>
+        </div> */}
 
         {/* Login and Language */}
         <div className="flex items-center space-x-1 py-2 ml-[-10px]">

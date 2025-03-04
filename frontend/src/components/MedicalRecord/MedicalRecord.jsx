@@ -3,7 +3,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
 } from '@heroicons/react/24/outline';
-import AddCondition from './MedicalRecord/AddCondition';
+import AddCondition from './AddCondition';
 import AddAllergy from './MedicalRecord/AddAllergy';
 
 const MedicalRecord = () => {

@@ -4,7 +4,7 @@ import BloodPressureCharts from './Charts/BloodPressureCharts';
 import MenstruationStatistics from './Charts/MenstruationStatistics';
 
 const Charts = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
 
   if (isLoading) return <div>Loading...</div>;
 

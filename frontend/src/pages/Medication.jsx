@@ -9,8 +9,7 @@ import AddPlanButton from '../components/Medication/AddPlanButton';
 import AddPlanModal from '../components/Medication/AddPlanModal';
 
 const Medication = () => {
-  const { user } = useContext(AuthContext);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState('MEDICATION_HOME');
 
   // Filters state
