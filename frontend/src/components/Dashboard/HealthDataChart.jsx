@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
+import PropTypes from 'prop-types';
 import { Bar } from 'react-chartjs-2';
 import { Chart, registerables } from 'chart.js';
 
@@ -6,18 +7,21 @@ import { Chart, registerables } from 'chart.js';
 Chart.register(...registerables);
 
 const HealthDataChart = ({ title, dataLabel }) => {
-  // Generate data inside useMemo to prevent unnecessary re-renders
-  const chartData = useMemo(() => {
-    const generateRandomData = (count) => {
-      return Array(count).fill(null).map(() => Math.floor(Math.random() * 100));
-    };
+  // Generate cryptographically secure random data for chart visualization (not security-sensitive)
+  const generateSecureRandomData = (count) => {
+    const array = new Uint32Array(count);
+    window.crypto.getRandomValues(array);
+    return Array.from(array).map(value => value % 100); // Modulo 100 to keep values within a reasonable range
+  };
 
+  // Memoize chart data to prevent unnecessary re-renders
+  const chartData = useMemo(() => {
     return {
       labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
       datasets: [
         {
           label: dataLabel,
-          data: generateRandomData(7),
+          data: generateSecureRandomData(7),
           backgroundColor: 'rgba(75, 192, 192, 0.2)',
           borderColor: 'rgba(75, 192, 192, 1)',
           borderWidth: 1,
@@ -26,6 +30,7 @@ const HealthDataChart = ({ title, dataLabel }) => {
     };
   }, [dataLabel]);
 
+  // Chart options
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -46,6 +51,10 @@ const HealthDataChart = ({ title, dataLabel }) => {
       </div>
     </div>
   );
+};
+HealthDataChart.propTypes = {
+  title: PropTypes.string.isRequired,
+  dataLabel: PropTypes.string.isRequired,
 };
 
 export default HealthDataChart;

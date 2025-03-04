@@ -1,4 +1,4 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 
 const SummaryCard = ({ title, content }) => {
   return (
@@ -11,6 +11,13 @@ const SummaryCard = ({ title, content }) => {
       )}
     </div>
   );
+};
+SummaryCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  content: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.element
+  ]).isRequired,
 };
 
 export default SummaryCard;

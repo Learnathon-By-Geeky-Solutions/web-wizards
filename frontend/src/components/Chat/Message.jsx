@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const Message = ({ message, isOwnMessage }) => {
   const formatTime = (timestamp) => {
@@ -28,6 +29,13 @@ const Message = ({ message, isOwnMessage }) => {
       </div>
     </div>
   );
+};
+Message.propTypes = {
+  message: PropTypes.shape({
+    text: PropTypes.string.isRequired,
+    timestamp: PropTypes.number.isRequired,
+  }).isRequired,
+  isOwnMessage: PropTypes.bool.isRequired,
 };
 
 export default Message;

@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const PageTitle = ({ title, className = "" }) => {
   return (
@@ -6,6 +7,10 @@ const PageTitle = ({ title, className = "" }) => {
       {title}
     </h1>
   );
+};
+PageTitle.propTypes = {
+  title: PropTypes.string.isRequired,
+  className: PropTypes.string,
 };
 
 export default PageTitle;

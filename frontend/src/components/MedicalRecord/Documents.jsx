@@ -1,11 +1,5 @@
-import React, { useState, useContext } from 'react';
-import { AuthContext } from '../../context/authContext';
-import Sidebar from '../Sidebar';
-import TopNav from './TopNav';
-
+import React, { useState } from 'react';
 const Documents = () => {
-  const { user } = useContext(AuthContext); // Removed unused logout
-  const [fullName] = useState('Faysal Ahammed'); // Removed unused setFullName
   const [isLoading] = useState(false); // Removed unused setIsLoading
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);

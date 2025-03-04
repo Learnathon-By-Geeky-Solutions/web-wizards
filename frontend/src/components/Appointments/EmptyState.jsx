@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { CalendarIcon, CalendarDaysIcon } from '@heroicons/react/24/outline';
 
 const EmptyState = ({ currentUser, appointmentFilter }) => {
@@ -30,6 +31,10 @@ const EmptyState = ({ currentUser, appointmentFilter }) => {
       </div>
     </output>
   );
+};
+EmptyState.propTypes = {
+  currentUser: PropTypes.string,
+  appointmentFilter: PropTypes.string.isRequired,
 };
 
 export default EmptyState;

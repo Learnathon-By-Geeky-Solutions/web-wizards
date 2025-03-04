@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const AppointmentFilters = ({ appointmentFilter, setAppointmentFilter }) => {
   return (
@@ -14,6 +15,10 @@ const AppointmentFilters = ({ appointmentFilter, setAppointmentFilter }) => {
       </select>
     </div>
   );
+};
+AppointmentFilters.propTypes = {
+  appointmentFilter: PropTypes.string.isRequired,
+  setAppointmentFilter: PropTypes.func.isRequired,
 };
 
 export default AppointmentFilters;

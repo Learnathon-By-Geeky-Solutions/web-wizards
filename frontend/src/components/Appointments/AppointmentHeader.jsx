@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import UserProfile from '../Navbar/UserProfile';
 
 const AppointmentHeader = ({ currentDateTime }) => {
@@ -13,6 +14,9 @@ const AppointmentHeader = ({ currentDateTime }) => {
       <UserProfile />
     </header>
   );
+};
+AppointmentHeader.propTypes = {
+  currentDateTime: PropTypes.string.isRequired,
 };
 
 export default AppointmentHeader;

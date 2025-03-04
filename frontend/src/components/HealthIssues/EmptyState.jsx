@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const EmptyState = ({ message }) => {
   return (
@@ -11,6 +12,9 @@ const EmptyState = ({ message }) => {
       <p className="text-gray-500 text-lg">{message}</p>
     </div>
   );
+};
+EmptyState.propTypes = {
+  message: PropTypes.string.isRequired,
 };
 
 export default EmptyState;

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { FaPlus, FaRegHeart } from 'react-icons/fa';
+import PropTypes from 'prop-types';
 
 const Logbook = () => {
   const [isLoading] = useState(false);
@@ -79,6 +80,8 @@ const Logbook = () => {
         </form>
       </div>
     );
+  GenericMeasurementForm.propTypes = {
+    title: PropTypes.string.isRequired,
   };
 
   if (isLoading) return <div>Loading...</div>;

@@ -1,5 +1,5 @@
-import React, { useContext, useEffect } from 'react';
-import { createBrowserRouter, RouterProvider, Navigate, useNavigate } from 'react-router-dom';
+import { useContext, useEffect } from 'react';
+import { createBrowserRouter, RouterProvider, useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import Home from './pages/Home';
 import Test from './pages/Test';

@@ -1,5 +1,4 @@
-import React, { useState, useContext } from 'react';
-import { AuthContext } from '../../context/authContext';
+import React, { useState} from 'react';
 
 const Charts = () => {
   const [isLoading, setIsLoading] = useState(false);

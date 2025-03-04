@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import HealthIssueCard from './HealthIssueCard';
 
 const HealthIssueList = ({ issues }) => {
@@ -9,6 +10,14 @@ const HealthIssueList = ({ issues }) => {
       ))}
     </div>
   );
+};
+HealthIssueList.propTypes = {
+  issues: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      // add other properties of issue here
+    })
+  ).isRequired,
 };
 
 export default HealthIssueList;

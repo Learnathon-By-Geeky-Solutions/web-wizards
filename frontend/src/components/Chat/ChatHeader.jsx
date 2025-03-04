@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import ProfileDropdown from './ProfileDropdown';
 
 const ChatHeader = ({ user }) => {
@@ -11,6 +12,9 @@ const ChatHeader = ({ user }) => {
       <ProfileDropdown user={user} />
     </div>
   );
+};
+ChatHeader.propTypes = {
+  user: PropTypes.object.isRequired,
 };
 
 export default ChatHeader;

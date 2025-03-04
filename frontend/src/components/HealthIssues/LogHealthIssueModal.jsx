@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import DateTimeInput from './DateTimeInput';
 
 const LogHealthIssueModal = ({ onClose, onSave }) => {
@@ -76,6 +77,10 @@ const LogHealthIssueModal = ({ onClose, onSave }) => {
       </div>
     </div>
   );
+};
+LogHealthIssueModal.propTypes = {
+  onClose: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
 };
 
 export default LogHealthIssueModal;

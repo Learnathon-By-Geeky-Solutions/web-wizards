@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
 
 const MessageInput = ({ onSendMessage }) => {
@@ -39,6 +40,9 @@ const MessageInput = ({ onSendMessage }) => {
       </div>
     </form>
   );
+};
+MessageInput.propTypes = {
+  onSendMessage: PropTypes.func.isRequired,
 };
 
 export default MessageInput;

@@ -32,9 +32,16 @@ const Medication = () => {
   const openAddPlanModal = () => setCurrentPage('ADD_MEDICATION_PLAN');
   const closeAddPlanModal = () => setCurrentPage('MEDICATION_HOME');
   
+  // Generate a cryptographically secure random ID
+  const generateSecureId = () => {
+    const array = new Uint32Array(1);
+    window.crypto.getRandomValues(array);
+    return `Chat-${array[0].toString().padStart(4, '0')}`;
+  };
+
   // Add new plan
   const handleAddPlan = (newPlan) => {
-    setMedicationPlans([...medicationPlans, { ...newPlan, id: `Chat-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}` }]);
+    setMedicationPlans([...medicationPlans, { ...newPlan, id: generateSecureId() }]);
     closeAddPlanModal();
   };
 

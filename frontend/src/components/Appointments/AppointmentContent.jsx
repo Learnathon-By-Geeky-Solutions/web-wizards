@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import EmptyState from './EmptyState';
 import AppointmentItem from './AppointmentItem';
 
@@ -23,5 +24,11 @@ const AppointmentContent = ({ appointments, user, appointmentFilter }) => {
     </section>
   );
 };
+AppointmentContent.propTypes = {
+  appointments: PropTypes.array.isRequired,
+  user: PropTypes.object,
+  appointmentFilter: PropTypes.string
+};
+
 
 export default AppointmentContent;

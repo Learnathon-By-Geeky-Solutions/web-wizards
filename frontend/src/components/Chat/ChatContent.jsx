@@ -1,8 +1,9 @@
-import React, { useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import Message from './Message';
 import EmptyState from './EmptyState';
 
-const ChatContent = ({ messages, currentUser }) => {
+const ChatContent = ({ messages }) => {
   const messagesEndRef = useRef(null);
 
   // Auto-scroll to bottom when messages change
@@ -28,6 +29,15 @@ const ChatContent = ({ messages, currentUser }) => {
       )}
     </div>
   );
+};
+ChatContent.propTypes = {
+  messages: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      sender: PropTypes.string.isRequired,
+      content: PropTypes.string.isRequired,
+    })
+  ).isRequired
 };
 
 export default ChatContent;

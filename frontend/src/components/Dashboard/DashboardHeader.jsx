@@ -1,4 +1,4 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 import UserProfile from '../Navbar/UserProfile';
 
 const DashboardHeader = ({ user }) => {
@@ -17,6 +17,11 @@ const DashboardHeader = ({ user }) => {
       <UserProfile />
     </div>
   );
+};
+DashboardHeader.propTypes = {
+  user: PropTypes.shape({
+    name: PropTypes.string,
+  }),
 };
 
 export default DashboardHeader;

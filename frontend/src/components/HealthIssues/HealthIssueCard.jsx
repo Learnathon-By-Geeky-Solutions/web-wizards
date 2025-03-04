@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import PropTypes from 'prop-types';
 import { useNavigate } from "react-router-dom";
 
 const HealthIssueCard = ({ issue }) => {
@@ -103,6 +104,15 @@ const HealthIssueCard = ({ issue }) => {
       )}
     </div>
   );
+};
+HealthIssueCard.propTypes = {
+  issue: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired,
+    date: PropTypes.string,
+    time: PropTypes.string,
+    notes: PropTypes.string,
+  }).isRequired,
 };
 
 export default HealthIssueCard;

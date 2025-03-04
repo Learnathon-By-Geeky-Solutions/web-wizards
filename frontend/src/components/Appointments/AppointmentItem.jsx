@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const AppointmentItem = ({ appointment }) => {
   // This is a placeholder for rendering individual appointments
@@ -30,6 +31,15 @@ const AppointmentItem = ({ appointment }) => {
       </div>
     </div>
   );
+};
+AppointmentItem.propTypes = {
+  appointment: PropTypes.shape({
+    title: PropTypes.string,
+    date: PropTypes.string.isRequired,
+    time: PropTypes.string.isRequired,
+    doctorName: PropTypes.string,
+    status: PropTypes.string.isRequired,
+  }).isRequired,
 };
 
 export default AppointmentItem;

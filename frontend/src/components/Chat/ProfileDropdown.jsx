@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
+import PropTypes from 'prop-types';
 import { AuthContext } from '../../context/authContext';
 
 const ProfileDropdown = ({ user }) => {
@@ -64,6 +65,12 @@ const ProfileDropdown = ({ user }) => {
       )}
     </div>
   );
+};
+ProfileDropdown.propTypes = {
+  user: PropTypes.shape({
+    name: PropTypes.string,
+    email: PropTypes.string,
+  }).isRequired,
 };
 
 export default ProfileDropdown;
