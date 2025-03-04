@@ -17,7 +17,16 @@ const AddCondition = ({ onClose, onConfirm }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onClose} />
+      <button
+        type="button"
+        className="absolute inset-0 bg-black bg-opacity-50"
+        onClick={onClose}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            onClose();
+          }
+        }}
+      />
       <div className="relative bg-white p-6 rounded-lg shadow-lg w-96 max-w-full">
         <h2 className="text-xl font-semibold mb-4">Add Condition</h2>
         <form>

@@ -34,7 +34,12 @@ const AddAllergy = ({ onClose, onConfirm }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onClose}></div>
+      <button
+        type="button"
+        className="absolute inset-0 bg-black bg-opacity-50"
+        onClick={onClose}
+        aria-label="Close"
+      ></button>
       <div className="relative bg-white p-6 rounded-lg shadow-lg w-96 max-w-full">
         <h2 className="text-xl font-semibold mb-4">Add Allergy</h2>
         <form>
