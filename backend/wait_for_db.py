@@ -1,7 +1,9 @@
 import time
 import MySQLdb
+import os
 from django.db import connections
 from django.db.utils import OperationalError
+
 
 def wait_for_db():
     """Wait until MySQL is available."""
@@ -10,11 +12,11 @@ def wait_for_db():
         try:
             print("Waiting for database...")
             db_conn = MySQLdb.connect(
-                host='db',  # The service name defined in your docker-compose.yml
-                user='mhpcoder',
-                password='justkidding12!@',
-                database='learnathon',
-                port='3306'
+                host=os.getenv('DATABASE_HOST'),  # The service name defined in your docker-compose.yml
+                user=os.getenv('DATABASE_USER'),
+                password=os.getenv('DATABASE_PASSWORD'),
+                database=os.getenv('DATABASE_NAME'),
+                port=os.getenv('DATABASE_PORT')
             )
         except MySQLdb.OperationalError:
             print("Database unavailable, waiting 1 second...")

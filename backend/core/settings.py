@@ -40,10 +40,9 @@ ALLOWED_HOSTS = [
     'localhost',          # Allow access via localhost
 ]
 
-#CORS_ALLOW_CREDENTIALS = True
-#CORS_ORIGIN_WHITELIST = [
+# CORS_ORIGIN_WHITELIST = [
 #    'http://localhost:5173',
-#]
+# ]
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
 ]
@@ -66,7 +65,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'api',
     'apps.users',
-    
 ]
 
 MIDDLEWARE = [
@@ -170,16 +168,16 @@ REST_FRAMEWORK = {
 
 # Simple JWT Settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),  # Duration for access token validity
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),     # Duration for refresh token validity
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),   # Duration for access token validity
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),      # Duration for refresh token validity
     'ROTATE_REFRESH_TOKENS': True,                    # Allow rotating refresh tokens
     'BLACKLIST_AFTER_ROTATION': True,                 # Blacklist old refresh tokens after rotation
     'ALGORITHM': 'HS256',                             # Algorithm for encoding/decoding JWT tokens
     'SIGNING_KEY': SECRET_KEY,                        # Signing key used for token encryption, typically your SECRET_KEY
-    # 'VERIFYING_KEY': None,                            # Optional: Public key used for verification (if using asymmetric signing)
+    # 'VERIFYING_KEY': None,                          # Optional: Public key used for verification (if using asymmetric signing)
     'AUTH_HEADER_TYPES': ('Bearer',),                 # Default prefix for the Authorization header
-    # 'USER_ID_FIELD': 'id',                            # User identifier field
-    # 'USER_ID_CLAIM': 'user_id',                       # Custom claim for user ID in the token
+    # 'USER_ID_FIELD': 'id',                          # User identifier field
+    # 'USER_ID_CLAIM': 'user_id',                     # Custom claim for user ID in the token
 }
 
 

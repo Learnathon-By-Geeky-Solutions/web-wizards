@@ -23,17 +23,9 @@ services:
       - ./backend:/app  # Mount local code
     depends_on:
       - db
-    environment:
-      PYTHONUNBUFFERED: 1  # Enable real-time Python logging
-      DJANGO_SECRET_KEY: 'django-insecure-ihi)mr4kts@_9u3^$9)zegd5sibqmww14d2rv+w%g$eu05k!e8'
-      DJANGO_DEBUG: "True"
-      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
-      DB_ENGINE: django.db.backends.mysql
-      DB_NAME: learnathon
-      DB_USER: mhpcoder
-      DB_PASSWORD: justkidding12!@
-      DB_HOST: db
-      DB_PORT: "3306"
+    env_file:
+      - .env   #sh -c "python manage.py wait_for_db && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+
     command: >
       sh -c "python /app/wait_for_db.py && 
              python manage.py migrate && 
@@ -45,11 +37,6 @@ services:
       - "3306:3306"  # Map MySQL port
     env_file:
       - .env
-    environment:
-      MYSQL_ROOT_PASSWORD: root  # Replace with your root password
-      MYSQL_DATABASE: learnathon       # Optional: auto-create a database
-      MYSQL_USER: mhpcoder                    # Optional: create a user
-      MYSQL_PASSWORD: justkidding12!@            # Optional: user password
     volumes:
       - db_data:/var/lib/mysql
 
