@@ -9,9 +9,10 @@ const LogSymptoms = ({ closeLogSymptoms }) => {
 
         {/* Choose Symptom */}
         <div className="mb-4">
-          <label className="block font-medium mb-1">Choose Symptom</label>
+          <label htmlFor="symptom-search" className="block font-medium mb-1">Choose Symptom</label>
           <div className="flex items-center border rounded px-3 py-2">
             <input
+              id="symptom-search"
               type="text"
               placeholder="Search For Symptom"
               className="flex-1 focus:outline-none"
@@ -34,9 +35,9 @@ const LogSymptoms = ({ closeLogSymptoms }) => {
 
         {/* Selected Symptoms */}
         <div className="mb-4">
-          <label className="block font-medium mb-1">Selected Symptoms</label>
+          <label htmlFor="no-symptoms" className="block font-medium mb-1">Selected Symptoms</label>
           <div className="flex items-center space-x-2">
-            <input type="checkbox" className="form-checkbox" />
+            <input id="no-symptoms" type="checkbox" className="form-checkbox" />
             <span>No Symptoms</span>
           </div>
         </div>
@@ -44,16 +45,18 @@ const LogSymptoms = ({ closeLogSymptoms }) => {
         {/* Date & Time */}
         <div className="flex space-x-4 mb-4">
           <div>
-            <label className="block font-medium mb-1">Date</label>
+            <label htmlFor="date" className="block font-medium mb-1">Date</label>
             <input
+              id="date"
               type="date"
               defaultValue="2025-02-15"
               className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>
           <div>
-            <label className="block font-medium mb-1">Time</label>
+            <label htmlFor="time" className="block font-medium mb-1">Time</label>
             <input
+              id="time"
               type="time"
               defaultValue="12:08"
               className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"

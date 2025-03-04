@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const TimeField = ({ id, label, value, onChange }) => {
   return (
@@ -15,6 +16,13 @@ const TimeField = ({ id, label, value, onChange }) => {
       />
     </div>
   );
+};
+
+TimeField.propTypes = {
+  id: PropTypes.string.isRequired,
+  label: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
 };
 
 export default TimeField;

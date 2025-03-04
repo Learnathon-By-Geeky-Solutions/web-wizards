@@ -1,10 +1,8 @@
-import React, { useState, useContext } from 'react';
-import { AuthContext } from '../context/authContext';
+import React, { useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
 
 const Clinicians = () => {
-  const { user, logout } = useContext(AuthContext);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 

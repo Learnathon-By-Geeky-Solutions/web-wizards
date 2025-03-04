@@ -1,12 +1,10 @@
-import React, { useState, useContext } from 'react';
-import { AuthContext } from '../../context/authContext';
+import React, { useState} from 'react';
 import Sidebar from '../Sidebar';
 import UserProfile from '../Navbar/UserProfile';
 import SelectField from './SelectField';
 import TimeField from './TimeField';
 
 const Setting = () => {
-  const { user, logout } = useContext(AuthContext);
 
   // Combined state object
   const [settings, setSettings] = useState({
@@ -62,19 +60,6 @@ const Setting = () => {
     updateSetting('message', 'Settings saved successfully');
     setTimeout(() => updateSetting('message', ''), 3000);
   };
-
-  const handleProfileInfoClick = () => {
-    alert(`Profile Info\nName: ${user?.name}\nEmail: ${user?.email}`);
-    updateSetting('isDropdownOpen', false);
-  };
-
-  const handleLogoutClick = () => {
-    logout();
-    updateSetting('isDropdownOpen', false);
-  };
-
-  // Display the first letter of user's name
-  const getFirstLetter = (name) => name?.[0].toUpperCase();
 
   // Loading state
   if (settings.isLoading) {
