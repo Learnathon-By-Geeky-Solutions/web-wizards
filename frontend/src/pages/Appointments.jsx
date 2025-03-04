@@ -4,8 +4,6 @@ import Sidebar from '../components/Sidebar';
 import AppointmentHeader from '../components/Appointments/AppointmentHeader';
 import AppointmentFilters from '../components/Appointments/AppointmentFilters';
 import AppointmentContent from '../components/Appointments/AppointmentContent';
-import EmptyState from '../components/Appointments/EmptyState';
-
 const Appointments = () => {
   const { user } = useContext(AuthContext);
   

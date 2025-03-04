@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
 
 const Clinicians = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Demo clinicians data

@@ -7,7 +7,7 @@ import LogHealthIssueModal from '../components/HealthIssues/LogHealthIssueModal'
 import HealthIssueList from '../components/HealthIssues/HealthIssueList';
 
 const HealthIssues = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState('HEALTH_ISSUES_HOME');
   const [healthIssues, setHealthIssues] = useState([]);
 

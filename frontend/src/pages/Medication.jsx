@@ -1,5 +1,4 @@
-import React, { useState, useContext } from 'react';
-import { AuthContext } from '../context/authContext';
+import React, { useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import MedicationHeader from '../components/Medication/MedicationHeader';
 import MedicationFilters from '../components/Medication/MedicationFilters';

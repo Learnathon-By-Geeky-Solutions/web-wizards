@@ -7,7 +7,7 @@ import MessageInput from '../components/Chat/MessageInput';
 
 const Chat = () => {
   const { user } = useContext(AuthContext);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [messages, setMessages] = useState([]);
   
   const handleSendMessage = (message) => {
