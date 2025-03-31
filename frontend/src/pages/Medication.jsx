@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar';
 import MedicationHeader from '../components/Medication/MedicationHeader';
 import MedicationFilters from '../components/Medication/MedicationFilters';
 import MedicationPlansList from '../components/Medication/MedicationPlansList';
-import EmptyState from '../components/Medication/EmptyState';
+import EmptyState from '../components/common/EmptyState';
 import AddPlanButton from '../components/Medication/AddPlanButton';
 import AddPlanModal from '../components/Medication/AddPlanModal';
 

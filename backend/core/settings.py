@@ -17,6 +17,11 @@ import environ
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration
+import logging
+from .sentry_config import init_sentry
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +30,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
+""" sentry_sdk.init(
+    dsn="https://9d250a9cf0bc036a564092ee15c78582@o4509030680756224.ingest.de.sentry.io/4509030778863696",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+) """
 
+# Initialize Sentry with configuration from environment variables
+init_sentry()
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -38,6 +51,7 @@ DEBUG = env.bool('DEBUG', default=False)
 ALLOWED_HOSTS = [
     '127.0.0.1',          # Allow access via 127.0.0.1
     'localhost',          # Allow access via localhost
+    'backend',            # Allow access via backend service name in Docker
 ]
 
 # CORS_ORIGIN_WHITELIST = [
@@ -45,7 +59,12 @@ ALLOWED_HOSTS = [
 # ]
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
+    'http://127.0.0.1:5173',  # Allow requests from localhost
+    'http://frontend:5173',     # Allow requests from frontend container
 ]
+
+# Allow credentials in CORS requests
+CORS_ALLOW_CREDENTIALS = True
 
 AUTH_USER_MODEL = 'users.Users'
 # Application definition
@@ -60,12 +79,58 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'cloudinary',
     'rest_framework',
+    'rest_framework.authtoken',  # Add this line for token authentication
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'api',
     'apps.users',
+    # OAuth related
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'dj_rest_auth',
+    'dj_rest_auth.registration',  # Add this for registration endpoints
+    'oauth2_provider',
+    'social_django',
 ]
+
+# Site ID required by allauth
+SITE_ID = 1
+
+# Authentication backends
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+    'social_core.backends.google.GoogleOAuth2',
+]
+
+# Google OAuth2 settings
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'APP': {
+            'client_id': env('GOOGLE_CLIENT_ID', default=''),
+            'secret': env('GOOGLE_CLIENT_SECRET', default=''),
+            'key': ''
+        },
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        }
+    }
+}
+
+# AllAuth settings
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',

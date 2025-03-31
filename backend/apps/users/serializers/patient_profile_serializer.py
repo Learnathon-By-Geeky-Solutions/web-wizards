@@ -10,3 +10,11 @@ class PatientProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = PatientProfile
         fields = '__all__'
+        
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        # Ensure the image field is serialized as a valid URL
+        if representation.get('image'):
+            # Extract the secure URL if the image field contains a Cloudinary resource
+            representation['image'] = instance.image.url if instance.image else ''
+        return representation

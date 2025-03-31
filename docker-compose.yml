@@ -22,10 +22,10 @@ services:
     volumes:
       - ./backend:/app  # Mount local code
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
-      - .env   #sh -c "python manage.py wait_for_db && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
-
+      - .env
     command: >
       sh -c "python /app/wait_for_db.py && 
              python manage.py migrate && 
@@ -39,6 +39,11 @@ services:
       - .env
     volumes:
       - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   db_data:  # Named volume for MySQL persistence

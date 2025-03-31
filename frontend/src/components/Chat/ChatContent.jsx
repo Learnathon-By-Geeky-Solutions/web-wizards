@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Message from './Message';
-import EmptyState from './EmptyState';
+import EmptyState from '../common/EmptyState';
 
 const ChatContent = ({ messages }) => {
   const messagesEndRef = useRef(null);
@@ -14,7 +14,12 @@ const ChatContent = ({ messages }) => {
   return (
     <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
       {messages.length === 0 ? (
-        <EmptyState />
+        <EmptyState 
+          message="No messages yet. Start a conversation!" 
+          icon="chat"
+          bgColor="bg-blue-100"
+          iconColor="text-blue-500"
+        />
       ) : (
         <div className="space-y-4">
           {messages.map((message) => (
@@ -30,6 +35,7 @@ const ChatContent = ({ messages }) => {
     </div>
   );
 };
+
 ChatContent.propTypes = {
   messages: PropTypes.arrayOf(
     PropTypes.shape({

@@ -1,27 +1,38 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useContext } from 'react';
 import {
   ChevronDownIcon,
   ChevronUpIcon,
 } from '@heroicons/react/24/outline';
-import AddCondition from './AddCondition';
+import AddCondition from './MedicalRecord/AddCondition';
 import AddAllergy from './MedicalRecord/AddAllergy';
+import { uploadProfileImage, updatePatientProfile } from '../../api/userProfile';
+import { AuthContext } from '../../context/authContext';
 
 const MedicalRecord = () => {
-  const [fullName] = useState('Faysal Ahammed');
+  const { user } = useContext(AuthContext);
+  const [fullName, setFullName] = useState(user?.user?.name || 'User');
+  const [profileData, setProfileData] = useState(user || {});
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isProfileUpdated, setIsProfileUpdated] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const firstLetter = fullName.charAt(0);
 
-  const [bloodGroup, setBloodGroup] = useState('None');
-  const [height, setHeight] = useState(0);
-  const [weight, setWeight] = useState(0);
+  const [bloodGroup, setBloodGroup] = useState(user?.blood_group || 'None');
+  const [height, setHeight] = useState(user?.height || 0);
+  const [weight, setWeight] = useState(user?.weight || 0);
 
   const [photo, setPhoto] = useState(null);
+  const [photoUrl, setPhotoUrl] = useState(user?.image || null);
   const fileInputRef = useRef(null);
+
   const handleAddPhotoClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
-  const handlePhotoChange = (e) => {
+
+  const handlePhotoChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -32,7 +43,27 @@ const MedicalRecord = () => {
       alert('File is too large. Please select a file under 5MB.');
       return;
     }
+    
     setPhoto(file);
+    // Create a local preview
+    setPhotoUrl(URL.createObjectURL(file));
+    setIsProfileUpdated(true);
+    setUploadingImage(true);
+    
+    try {
+      // Upload image directly when selected
+      const response = await uploadProfileImage(file);
+      console.log('Image uploaded successfully:', response);
+      // Update the photoUrl with the actual Cloudinary URL from the response
+      if (response && response.image) {
+        setPhotoUrl(response.image);
+      }
+      setUploadingImage(false);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image. Please try again.');
+      setUploadingImage(false);
+    }
   };
 
   const bloodGroups = ['None', 'A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
@@ -48,22 +79,56 @@ const MedicalRecord = () => {
   const handleAddConditionConfirm = (conditionData) => {
     setChronicConditions([...chronicConditions, conditionData]);
     setIsAddConditionModalOpen(false);
+    setIsProfileUpdated(true);
   };
+  
   const handleAddAllergyConfirm = (allergyData) => {
     setAllergies([...allergies, allergyData]);
     setIsAddAllergyModalOpen(false);
+    setIsProfileUpdated(true);
   };
+
+  const handleUpdateProfile = async () => {
+    try {
+      setIsSaving(true);
+      const updatedData = {
+        blood_group: bloodGroup,
+        height: parseFloat(height) || 0,
+        weight: parseFloat(weight) || 0,
+      };
+
+      const response = await updatePatientProfile(updatedData);
+      console.log('Profile updated successfully:', response);
+      setIsProfileUpdated(false);
+      setIsSaving(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile. Please try again.');
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen">Loading profile data...</div>;
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg">
       <div className="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-6">
         <div className="flex flex-col items-center">
-          {photo ? (
-            <img
-              src={URL.createObjectURL(photo)}
-              alt="Profile Preview"
-              className="w-24 h-24 rounded-full object-cover"
-            />
+          {photoUrl ? (
+            <div className="relative w-24 h-24">
+              {uploadingImage && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 rounded-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              )}
+              <img
+                src={photoUrl}
+                alt="Profile"
+                className="w-24 h-24 rounded-full object-cover"
+              />
+            </div>
           ) : (
             <div className="w-24 h-24 bg-gray-300 rounded-full flex items-center justify-center">
               <span className="text-xl font-bold text-gray-600">{firstLetter}</span>
@@ -76,11 +141,15 @@ const MedicalRecord = () => {
             accept="image/*"
             onChange={handlePhotoChange}
           />
-          <button onClick={handleAddPhotoClick} className="mt-3 text-blue-600 hover:text-blue-800">
-            Add photo
+          <button 
+            onClick={handleAddPhotoClick} 
+            className="mt-3 text-blue-600 hover:text-blue-800"
+            disabled={uploadingImage}
+          >
+            {photoUrl ? 'Change photo' : 'Add photo'}
           </button>
           <h2 className="text-xl font-semibold mt-3">{fullName}</h2>
-          <p className="text-gray-500">PIN: C4SDW9N5A5</p>
+          {profileData && <p className="text-gray-500">PIN: {profileData.id}</p>}
           <button className="mt-3 text-blue-600 hover:text-blue-800">Edit Profile</button>
           <button className="mt-1 text-gray-500 hover:text-gray-700">Download Medical History</button>
           <button className="mt-1 text-red-500 hover:text-red-700">Delete</button>
@@ -94,7 +163,10 @@ const MedicalRecord = () => {
               <select
                 id="bloodGroup"
                 value={bloodGroup}
-                onChange={(e) => setBloodGroup(e.target.value)}
+                onChange={(e) => {
+                  setBloodGroup(e.target.value);
+                  setIsProfileUpdated(true);
+                }}
                 className="w-full p-2 border rounded"
               >
                 {bloodGroups.map((group) => (
@@ -110,7 +182,10 @@ const MedicalRecord = () => {
                 id="height"
                 type="number"
                 value={height}
-                onChange={(e) => setHeight(e.target.value)}
+                onChange={(e) => {
+                  setHeight(e.target.value);
+                  setIsProfileUpdated(true);
+                }}
                 className="w-full p-2 border rounded"
               />
             </div>
@@ -120,12 +195,15 @@ const MedicalRecord = () => {
                 id="weight"
                 type="number"
                 value={weight}
-                onChange={(e) => setWeight(e.target.value)}
+                onChange={(e) => {
+                  setWeight(e.target.value);
+                  setIsProfileUpdated(true);
+                }}
                 className="w-full p-2 border rounded"
               />
             </div>
           </div>
-
+          
           <div className="mt-6">
             <button
               onClick={() => setIsAdditionalInfoOpen(!isAdditionalInfoOpen)}
@@ -202,10 +280,15 @@ const MedicalRecord = () => {
 
       <div className="mt-6">
         <button
-          className="px-6 py-2 bg-gray-300 text-gray-600 rounded cursor-not-allowed"
-          disabled
+          className={`px-6 py-2 ${
+            isProfileUpdated 
+              ? 'bg-blue-500 text-white hover:bg-blue-600' 
+              : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+          } rounded`}
+          disabled={!isProfileUpdated || isSaving}
+          onClick={handleUpdateProfile}
         >
-          Update
+          {isSaving ? 'Updating...' : 'Update'}
         </button>
       </div>
 

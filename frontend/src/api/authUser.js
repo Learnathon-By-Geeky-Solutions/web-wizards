@@ -1,6 +1,14 @@
+// Get the API URL from environment variables or use a default
+const API_URL = 'http://127.0.0.1:8000';
+
+/**
+ * Authentication API Functions
+ * This module handles user registration, login, and logout
+ */
+
 export const registerUser = async (data) => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/users/register/', {
+      const response = await fetch(`${API_URL}/api/users/register/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -21,7 +29,7 @@ export const registerUser = async (data) => {
 
 export const loginUser = async (data) => {
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/users/login/', {
+    const response = await fetch(`${API_URL}/api/users/login/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -45,33 +53,12 @@ export const loginUser = async (data) => {
   }
 };
 
-export const getUserProfile = async () => {
-  try {
-    const token = localStorage.getItem('accessToken');
-    const response = await fetch('http://127.0.0.1:8000/api/users/profile/', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch user profile');
-    }
-
-    return await response.json();
-  } catch (error) {
-    throw error;
-  }
-};
-
 export const logoutUser = async () => {
   try {
     const token = localStorage.getItem('accessToken');
     const refreshToken = localStorage.getItem('refreshToken');
     
-    const response = await fetch('http://127.0.0.1:8000/api/users/logout/', {
+    const response = await fetch(`${API_URL}/api/users/logout/`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

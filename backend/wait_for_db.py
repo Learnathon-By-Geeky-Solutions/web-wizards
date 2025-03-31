@@ -1,9 +1,7 @@
 import time
 import MySQLdb
 import os
-from django.db import connections
-from django.db.utils import OperationalError
-
+from MySQLdb import OperationalError
 
 def wait_for_db():
     """Wait until MySQL is available."""
@@ -16,8 +14,15 @@ def wait_for_db():
                 user=os.getenv('DATABASE_USER'),
                 password=os.getenv('DATABASE_PASSWORD'),
                 database=os.getenv('DATABASE_NAME'),
-                port=os.getenv('DATABASE_PORT')
+                port=int(os.getenv('DATABASE_PORT'))
             )
-        except MySQLdb.OperationalError:
-            print("Database unavailable, waiting 1 second...")
+            print("Database connected!")
+        except OperationalError as e:
+            print(f"Database unavailable, waiting 1 second... Error: {e}")
             time.sleep(1)
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            time.sleep(1)
+
+if __name__ == "__main__":
+    wait_for_db()

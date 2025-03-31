@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import DateTimeInput from './DateTimeInput';
+import DateTimeInput from '../common/DateTimeInput';
 
 const AddPlanModal = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({

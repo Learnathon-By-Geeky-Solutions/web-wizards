@@ -12,6 +12,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
+    "@sentry/react": "^9.8.0",
     "axios": "^1.7.9",
     "chart.js": "^4.4.7",
     "country-list": "^2.3.0",

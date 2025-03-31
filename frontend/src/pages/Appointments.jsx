@@ -4,15 +4,75 @@ import Sidebar from '../components/Sidebar';
 import AppointmentHeader from '../components/Appointments/AppointmentHeader';
 import AppointmentFilters from '../components/Appointments/AppointmentFilters';
 import AppointmentContent from '../components/Appointments/AppointmentContent';
+import useSentryTracking from '../hooks/useSentryTracking';
+import { withSentryErrorBoundary } from '../components/common/withSentryErrorBoundary';
+
 const Appointments = () => {
   const { user } = useContext(AuthContext);
+  
+  // Initialize Sentry tracking
+  const sentryTracking = useSentryTracking('Appointments', {
+    metadata: {
+      userId: user?.id,
+      userName: user?.name
+    }
+  });
   
   // States
   const [appointmentFilter, setAppointmentFilter] = useState('all');
   const [isLoading] = useState(false);
 
   const currentDateTime = '2025-02-16 11:09:10';
-  const appointments = [];
+  
+  // Dummy appointment data
+  const [appointments, setAppointments] = useState([
+    {
+      id: 'apt-001',
+      title: 'Annual Physical Checkup',
+      date: '2025-03-15',
+      time: '09:30 AM',
+      doctorName: 'Sarah Johnson',
+      status: 'pending',
+      location: 'Central Hospital, Room 305',
+      notes: 'Please bring your medical records and arrive 15 minutes early'
+    },
+    {
+      id: 'apt-002',
+      title: 'Dental Cleaning',
+      date: '2025-03-20',
+      time: '14:00 PM',
+      doctorName: 'Michael Chen',
+      status: 'pending',
+      location: 'City Dental Clinic',
+      notes: 'Regular 6-month cleaning'
+    },
+    {
+      id: 'apt-003',
+      title: 'Follow-up Consultation',
+      date: '2025-02-05',
+      time: '11:15 AM',
+      doctorName: 'Emily Williams',
+      status: 'completed',
+      location: 'Community Healthcare Center',
+      notes: 'Blood pressure check and medication review'
+    }
+  ]);
+
+  // Function to filter appointments based on selected filter
+  const filteredAppointments = appointments.filter(appointment => {
+    if (appointmentFilter === 'all') return true;
+    return appointment.status === appointmentFilter;
+  });
+  
+  // Track filter changes
+  const handleFilterChange = (newFilter) => {
+    sentryTracking.trackAction('Changed appointment filter', { 
+      previousFilter: appointmentFilter,
+      newFilter 
+    });
+    
+    setAppointmentFilter(newFilter);
+  };
 
   if (isLoading) {
     return (
@@ -37,11 +97,11 @@ const Appointments = () => {
         
         <AppointmentFilters 
           appointmentFilter={appointmentFilter} 
-          setAppointmentFilter={setAppointmentFilter} 
+          setAppointmentFilter={handleFilterChange} 
         />
         
         <AppointmentContent 
-          appointments={appointments} 
+          appointments={filteredAppointments} 
           user={user}
           appointmentFilter={appointmentFilter}
         />
@@ -50,4 +110,4 @@ const Appointments = () => {
   );
 };
 
-export default Appointments;
+export default withSentryErrorBoundary(Appointments);

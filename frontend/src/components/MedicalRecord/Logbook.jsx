@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { FaPlus, FaRegHeart } from 'react-icons/fa';
 import CloseButton from './Logbook/CloseButton';
 import GenericMeasurementForm from './Logbook/GenericMeasurementForm';
+import VitalsModal from './Logbook/VitalsModal';
 
 const Logbook = () => {
   const [isLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState('LOGBOOK');
+  const [logs, setLogs] = useState([]);
 
   const entryTypes = [
     'Blood pressure',
@@ -24,6 +26,10 @@ const Logbook = () => {
 
   const handleEntryTypeClick = (entryType) =>
     setCurrentPage(entryType.toUpperCase().replace(/ /g, '_'));
+
+  const handleSave = (newLog) => {
+    setLogs([...logs, { ...newLog, id: logs.length + 1, createdAt: new Date() }]);
+  };
 
   if (isLoading) return <div>Loading...</div>;
 
@@ -62,31 +68,29 @@ const Logbook = () => {
           >
             <FaPlus className="text-xl" />
           </button>
+
+          <div className="mt-4">
+            {logs.length === 0 ? (
+              <p>No logs available. Click on "+ Add Entry" to create one.</p>
+            ) : (
+              <ul>
+                {logs.map((log) => (
+                  <li key={log.id} className="border p-2 mb-2 rounded">
+                    <p><strong>Vital:</strong> {log.vital}</p>
+                    <p><strong>Value:</strong> {log.value}</p>
+                    <p><strong>Date:</strong> {log.date}</p>
+                    <p><strong>Time:</strong> {log.time}</p>
+                    <p><strong>Created At:</strong> {log.createdAt.toLocaleString()}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
 
       {currentPage === 'ADD_ENTRY' && (
-        <div className="relative p-4 bg-white rounded shadow">
-          <CloseButton setCurrentPage={setCurrentPage} />
-          <h2 className="text-xl font-semibold mb-4">Add new entry</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {entryTypes.map((item) => (
-              <button
-                key={item}
-                className="cursor-pointer p-4 border rounded text-center hover:bg-gray-50"
-                onClick={() => handleEntryTypeClick(item)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    handleEntryTypeClick(item);
-                  }
-                }}
-              >
-                <FaRegHeart className="mx-auto text-2xl mb-2" />
-                <span className="block font-medium">{item}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        <VitalsModal setCurrentPage={setCurrentPage} onSave={handleSave} />
       )}
 
       {entryTypes.map((entry) =>

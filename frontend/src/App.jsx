@@ -5,11 +5,14 @@ import Home from './pages/Home';
 import Test from './pages/Test';
 import Registration from './pages/Registration';
 import Login from './pages/Login';
+import GoogleCallback from './pages/GoogleCallback';
 import Settings from './pages/Settings';
 import Medication from './pages/Medication';
 import Clinicians from './pages/Clinicians';
 import NotFound from './pages/NotFound';
-import HealthIssues from './pages/HealthIssues'
+import HealthIssues from './pages/HealthIssues';
+import HealthIssueDetail from './pages/HealthIssueDetail';
+import HealthIssueFormPage from './pages/HealthIssueFormPage';
 import Chat from './pages/Chat';
 import Appointments from './pages/Appointments';
 import Dashboard from './pages/Dashboard';
@@ -21,6 +24,7 @@ import LabResult from './components/MedicalRecord/LabResult';
 import Symptoms from './components/MedicalRecord/Symptoms';
 import Charts from './components/MedicalRecord/Charts';
 import MedicalRecordLayout from './components/MedicalRecord/MedicalRecordLayout';
+import SentryErrorBoundary from './components/common/SentryErrorBoundary';
 
 const PrivateRoute = ({ element }) => {
   const { isAuthenticated } = useContext(AuthContext);
@@ -76,6 +80,10 @@ const router = createBrowserRouter([
     element: <PublicRoute element={<Login />} />,
   },
   {
+    path: "/google-callback",
+    element: <PublicRoute element={<GoogleCallback />} />,
+  },
+  {
     path: "/dashboard",
     element: <PrivateRoute element={<Dashboard />} />,
   },
@@ -109,6 +117,24 @@ const router = createBrowserRouter([
       }
     ]
   },
+  // Updated Health Issues Routes
+  {
+    path: "/health-issues",
+    element: <PrivateRoute element={<HealthIssues />} />,
+  },
+  {
+    path: "/health-issues/:id",
+    element: <PrivateRoute element={<HealthIssueDetail />} />,
+  },
+  {
+    path: "/health-issues/:id/:recordType/new",
+    element: <PrivateRoute element={<HealthIssueFormPage />} />,
+  },
+  {
+    path: "/health-issues/:id/edit",
+    element: <PrivateRoute element={<HealthIssueFormPage />} />,
+  },
+  // Legacy route for backward compatibility
   {
     path: "/healthissues",
     element: <PrivateRoute element={<HealthIssues />} />,
@@ -141,9 +167,11 @@ const router = createBrowserRouter([
 
 function App() {
   return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <SentryErrorBoundary>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </SentryErrorBoundary>
   );
 }
 

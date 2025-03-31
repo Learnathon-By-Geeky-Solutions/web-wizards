@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+// Get the API URL from environment variables or use a default
+const API_URL = import.meta.env.VITE_API_URL || 'http://backend:8000';
+
 function Test() {
   const [data, setData] = useState([]);
   const navigate = useNavigate();
@@ -11,7 +14,7 @@ function Test() {
         const token = localStorage.getItem('accessToken');
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-        const response = await fetch('http://127.0.0.1:8000/api/demo/', {
+        const response = await fetch(`${API_URL}/api/demo/`, {
           headers: {
             ...headers,
             'Content-Type': 'application/json'

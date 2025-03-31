@@ -26,16 +26,30 @@ const UserProfile = () => {
     );
   }
 
+  // The user profile data structure includes a nested user object with name
+  const userName = user.user?.name || '';
+  
+  // Get first letter for fallback avatar
+  const firstLetter = userName ? userName[0].toUpperCase() : '?';
+
   return (
     <div className="relative flex justify-end">
       <button
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100"
       >
-        <div className="w-8 h-8 bg-teal-600 rounded-full flex items-center justify-center text-white">
-          {user.name ? user.name[0].toUpperCase() : '?'}
-        </div>
-        <span className="text-gray-700">{user.name || 'Guest'}</span>
+        {user.image ? (
+          <img 
+            src={user.image} 
+            alt={userName || 'Profile'} 
+            className="w-8 h-8 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-8 h-8 bg-teal-600 rounded-full flex items-center justify-center text-white">
+            {firstLetter}
+          </div>
+        )}
+        <span className="text-gray-700">{userName}</span>
       </button>
 
       {isDropdownOpen && (
