@@ -12,57 +12,32 @@ export const initSentry = (options = {}) => {
   const tracesSampleRate = parseFloat(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE) || (environment === 'production' ? 0.2 : 1.0);
   const enableInDev = import.meta.env.VITE_SENTRY_ENABLE_DEV === 'true';
   
+  // Configure replay sample rates with defaults if not set in env
+  const replaysSessionSampleRate = parseFloat(import.meta.env.VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE) || 0.1;
+  const replaysOnErrorSampleRate = parseFloat(import.meta.env.VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE) || 1.0;
+  
   // Check if Sentry should be enabled
   const enabled = environment === 'production' || enableInDev;
-  
-  // If DSN is not provided and not in production, disable Sentry
-  if (!dsn && environment !== 'production') {
-    console.info('Sentry is disabled because no DSN is provided');
-    return;
-  }
   
   // Default configuration
   const defaultConfig = {
     dsn: dsn,
     environment,
-    // Modern way to configure integrations for Sentry v9.8.0
+    enabled,
     integrations: [
-      // Performance integrations
       browserTracingIntegration({
         tracingOrigins: ['localhost', 'amarhealth.tech', /^\//],
       }),
-      Sentry.replayIntegration(),
+      Sentry.replayIntegration({
+        sessionSampleRate: replaysSessionSampleRate,
+        onErrorSampleRate: replaysOnErrorSampleRate,
+        maskAllText: true,
+        blockAllMedia: true,
+      }),
     ],
-    // Configure performance tracing
     tracesSampleRate: tracesSampleRate,
-    // Configure profiling
-    profilesSampleRate: environment === 'production' ? 0.1 : 0.5,
-    enabled: enabled,
-    
-    // Only collect data from specified domains
-    allowUrls: ['amarhealth.tech', 'localhost:5173', '127.0.0.1:5173'],
-    
-    // Prevent collection of user IP addresses
-    ipAnonymization: true,
-    
-    // Release version
-    release: import.meta.env.VITE_APP_VERSION || '1.0.0',
-    
-    // Configure beforeSend to customize or drop events
-    beforeSend(event) {
-      // Don't send events related to browser extensions
-      if (event.request && event.request.url && event.request.url.match(/^chrome-extension:\/\//)) {
-        return null;
-      }
-      
-      // Remove sensitive data from the event
-      if (event.request && event.request.headers) {
-        delete event.request.headers.Authorization;
-        delete event.request.headers.Cookie;
-      }
-      
-      return event;
-    },
+    replaysSessionSampleRate: replaysSessionSampleRate,
+    replaysOnErrorSampleRate: replaysOnErrorSampleRate,
   };
   
   // Initialize Sentry with merged configuration
@@ -128,7 +103,16 @@ export const addBreadcrumb = (breadcrumb) => {
  * @param {Object} user - User information
  */
 export const setUser = (user) => {
-  Sentry.setUser(user);
+  if (!user) {
+    Sentry.setUser(null);
+    return;
+  }
+
+  Sentry.setUser({
+    id: user.id,
+    email: user.email,
+    username: user.name,
+  });
 };
 
 /**

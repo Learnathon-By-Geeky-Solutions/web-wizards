@@ -1,7 +1,8 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { initiateGoogleLogin } from '../api/oauthServices';
+import { authService } from '../services/authService';
 import { AuthContext } from '../context/authContext';
 
 const Login = () => {
@@ -11,21 +12,24 @@ const Login = () => {
     formState: { errors },
   } = useForm();
 
-  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
-  const location = useLocation();
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const authContext = useContext(AuthContext);
+
+  useEffect(() => {
+    // Set auth context in service
+    authService.setAuthContext(authContext);
+  }, [authContext]);
 
   const onSubmit = async (data) => {
     try {
       setIsLoading(true);
-      // Use the login function from context
-      await login(data);
+      await authService.login(data);
       navigate('/dashboard');
     } catch (error) {
       console.error('Login failed:', error);
-      setErrorMessage(error.message);
+      setErrorMessage(error.message || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

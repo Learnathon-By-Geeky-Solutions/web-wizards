@@ -4,9 +4,19 @@ import Sidebar from '../components/Sidebar';
 import DashboardHeader from '../components/Dashboard/DashboardHeader';
 import ChartSection from '../components/Dashboard/ChartSection';
 import SummarySection from '../components/Dashboard/SummarySection';
+import withSentryErrorBoundary from '../components/common/withSentryErrorBoundary';
+import useSentryTracking from '../hooks/useSentryTracking';
 
 const Dashboard = () => {
   const { user } = useContext(AuthContext);
+  
+  // Initialize Sentry tracking
+  useSentryTracking('Dashboard', {
+    metadata: {
+      userId: user?.id,
+      userName: user?.name
+    }
+  });
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -20,4 +30,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default withSentryErrorBoundary(Dashboard);

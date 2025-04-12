@@ -15,12 +15,6 @@ import os
 from datetime import timedelta
 import environ
 import cloudinary
-import cloudinary.uploader
-import cloudinary.api
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
-from sentry_sdk.integrations.logging import LoggingIntegration
-import logging
 from .sentry_config import init_sentry
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -29,13 +23,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load environment variables from .env file
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
-
-""" sentry_sdk.init(
-    dsn="https://9d250a9cf0bc036a564092ee15c78582@o4509030680756224.ingest.de.sentry.io/4509030778863696",
-    # Add data like request headers and IP for users,
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
-) """
 
 # Initialize Sentry with configuration from environment variables
 init_sentry()
@@ -54,13 +41,11 @@ ALLOWED_HOSTS = [
     'backend',            # Allow access via backend service name in Docker
 ]
 
-# CORS_ORIGIN_WHITELIST = [
-#    'http://localhost:5173',
-# ]
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',  # Allow requests from localhost
-    'http://frontend:5173',     # Allow requests from frontend container
+    "http://localhost:5173",  # Vite development server
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",  # React development server
+    "http://127.0.0.1:3000",
 ]
 
 # Allow credentials in CORS requests
@@ -83,8 +68,14 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'django_filters',  # Add django-filters app
     'api',
     'apps.users',
+    'apps.medical_records',  # Add medical_records app
+    'apps.clinicians',       # Add clinicians app
+    'apps.medications',      # Add medications app
+    'apps.appointments',     # Add appointments app
+    'apps.visualizations',   # Add visualizations app
     # OAuth related
     'django.contrib.sites',
     'allauth',
@@ -133,6 +124,7 @@ ACCOUNT_AUTHENTICATION_METHOD = 'email'
 
 
 MIDDLEWARE = [
+    'core.middleware.RateLimitMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -220,6 +212,31 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# OCR Service settings
+OCR_SERVICE_URL = env('OCR_SERVICE_URL', default='http://ocr_service:8000')
+
+# OpenAI API Configuration
+OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
+
+# Redis Cache Configuration
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://redis:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
+        }
+    }
+}
+
+# Use Redis for session storage
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
+# Cache timeout settings (in seconds)
+CACHE_TTL = 60 * 15  # 15 minutes default
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -228,21 +245,30 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    # Add cache control to REST Framework
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'user': '1000/day'
+    }
 }
 
 
 # Simple JWT Settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),   # Duration for access token validity
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),      # Duration for refresh token validity
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),   # Changed back to 15 minutes
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),      # Increased refresh token lifetime
     'ROTATE_REFRESH_TOKENS': True,                    # Allow rotating refresh tokens
     'BLACKLIST_AFTER_ROTATION': True,                 # Blacklist old refresh tokens after rotation
+    'UPDATE_LAST_LOGIN': True,                        # Update last login timestamp
     'ALGORITHM': 'HS256',                             # Algorithm for encoding/decoding JWT tokens
-    'SIGNING_KEY': SECRET_KEY,                        # Signing key used for token encryption, typically your SECRET_KEY
-    # 'VERIFYING_KEY': None,                          # Optional: Public key used for verification (if using asymmetric signing)
+    'SIGNING_KEY': SECRET_KEY,                        # Signing key used for token encryption
     'AUTH_HEADER_TYPES': ('Bearer',),                 # Default prefix for the Authorization header
-    # 'USER_ID_FIELD': 'id',                          # User identifier field
-    # 'USER_ID_CLAIM': 'user_id',                     # Custom claim for user ID in the token
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
 
@@ -253,4 +279,12 @@ CLOUDINARY_STORAGE = {
 }
 
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+
+# Celery Configuration
+CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
 

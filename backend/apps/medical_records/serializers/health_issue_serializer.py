@@ -11,19 +11,37 @@ class HealthIssueSerializer(serializers.ModelSerializer):
             'start_date', 'start_time', 'end_date', 'end_time', 
             'status', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
-    
+        read_only_fields = ['id', 'created_at', 'updated_at', 'user']
+
+    def validate_title(self, value):
+        """Validate the title field"""
+        if not value.strip():
+            raise serializers.ValidationError("Title cannot be empty or whitespace")
+        return value.strip()
+
     def validate(self, data):
         """
-        Validate that end date/time is after start date/time if provided
+        Validate the complete health issue data
         """
-        if 'end_date' in data and data['end_date'] is not None:
+        # Ensure required fields are present
+        if not data.get('start_date'):
+            raise serializers.ValidationError({"start_date": "Start date is required"})
+            
+        if not data.get('start_time'):
+            raise serializers.ValidationError({"start_time": "Start time is required"})
+
+        # Validate end date/time if provided
+        if data.get('end_date'):
             if data['end_date'] < data['start_date']:
-                raise serializers.ValidationError("End date must be after start date")
+                raise serializers.ValidationError({"end_date": "End date must be after start date"})
             
             # If dates are the same, check time
-            if data['end_date'] == data['start_date'] and 'end_time' in data and 'start_time' in data:
+            if data['end_date'] == data['start_date'] and data.get('end_time') and data.get('start_time'):
                 if data['end_time'] <= data['start_time']:
-                    raise serializers.ValidationError("End time must be after start time on the same day")
+                    raise serializers.ValidationError({"end_time": "End time must be after start time on the same day"})
+
+        # Validate status
+        if data.get('status') and data['status'] not in ['active', 'resolved', 'monitoring']:
+            raise serializers.ValidationError({"status": "Invalid status value"})
         
         return data

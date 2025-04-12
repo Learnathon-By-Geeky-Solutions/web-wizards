@@ -11,4 +11,4 @@ class SymptomSerializer(serializers.ModelSerializer):
             'description', 'severity', 'recorded_date', 
             'recorded_time', 'duration', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'user', 'created_at', 'updated_at']

@@ -1,30 +1,47 @@
-import { useContext, useEffect } from 'react';
+import { lazy, Suspense, useContext, useEffect } from 'react';
 import { createBrowserRouter, RouterProvider, useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
+// Import core components directly
 import Home from './pages/Home';
-import Test from './pages/Test';
-import Registration from './pages/Registration';
-import Login from './pages/Login';
-import GoogleCallback from './pages/GoogleCallback';
-import Settings from './pages/Settings';
-import Medication from './pages/Medication';
-import Clinicians from './pages/Clinicians';
-import NotFound from './pages/NotFound';
-import HealthIssues from './pages/HealthIssues';
-import HealthIssueDetail from './pages/HealthIssueDetail';
-import HealthIssueFormPage from './pages/HealthIssueFormPage';
-import Chat from './pages/Chat';
-import Appointments from './pages/Appointments';
-import Dashboard from './pages/Dashboard';
+import LoadingScreen from './components/common/LoadingScreen';
 import { AuthProvider, AuthContext } from './context/authContext';
-import MedicalRecord from './components/MedicalRecord/MedicalRecord';
-import Documents from './components/MedicalRecord/Documents';
-import Logbook from './components/MedicalRecord/Logbook';
-import LabResult from './components/MedicalRecord/LabResult';
-import Symptoms from './components/MedicalRecord/Symptoms';
-import Charts from './components/MedicalRecord/Charts';
-import MedicalRecordLayout from './components/MedicalRecord/MedicalRecordLayout';
 import SentryErrorBoundary from './components/common/SentryErrorBoundary';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import store, { persistor } from './store';
+
+// Lazy load other components
+const Login = lazy(() => import('./pages/Login'));
+const Registration = lazy(() => import('./pages/Registration'));
+const GoogleCallback = lazy(() => import('./pages/GoogleCallback'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Medication = lazy(() => import('./pages/Medication'));
+const Clinicians = lazy(() => import('./pages/Clinicians'));
+const ClinicianDetail = lazy(() => import('./pages/ClinicianDetail'));
+const DiagnosticCenterDetail = lazy(() => import('./pages/DiagnosticCenterDetail'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const HealthIssues = lazy(() => import('./pages/HealthIssues'));
+const HealthIssueDetail = lazy(() => import('./pages/HealthIssueDetail'));
+const HealthIssueFormPage = lazy(() => import('./pages/HealthIssueFormPage'));
+const Chat = lazy(() => import('./pages/Chat'));
+const Appointments = lazy(() => import('./pages/Appointments'));
+
+// Updated imports for Medical Record pages
+const MedicalRecordLayout = lazy(() => import('./pages/MedicalRecordLayout'));
+const MedicalRecord = lazy(() => import('./pages/MedicalRecord'));
+const Documents = lazy(() => import('./pages/Documents'));
+const Logbook = lazy(() => import('./pages/Logbook'));
+const LabResult = lazy(() => import('./pages/LabResult'));
+const Symptoms = lazy(() => import('./pages/Symptoms'));
+const Charts = lazy(() => import('./pages/Charts'));
+
+// Fallback loading component
+const PageLoading = () => (
+  <div className="flex justify-center items-center h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+  </div>
+);
 
 const PrivateRoute = ({ element }) => {
   const { isAuthenticated } = useContext(AuthContext);
@@ -61,117 +78,208 @@ PublicRoute.propTypes = {
   element: PropTypes.element.isRequired,
 };
 
-// Define router configuration
+// Define router configuration with lazy loading
 const router = createBrowserRouter([
   {
     path: "/",
     element: <Home />,
   },
   {
-    path: "/test",
-    element: <Test />,
-  },
-  {
     path: "/registration",
-    element: <PublicRoute element={<Registration />} />,
+    element: <PublicRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <Registration />
+      </Suspense>
+    } />,
   },
   {
     path: "/login",
-    element: <PublicRoute element={<Login />} />,
+    element: <PublicRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <Login />
+      </Suspense>
+    } />,
   },
   {
     path: "/google-callback",
-    element: <PublicRoute element={<GoogleCallback />} />,
+    element: <PublicRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <GoogleCallback />
+      </Suspense>
+    } />,
   },
   {
     path: "/dashboard",
-    element: <PrivateRoute element={<Dashboard />} />,
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <Dashboard />
+      </Suspense>
+    } />,
   },
   {
     path: "/medicalrecord",
-    element: <PrivateRoute element={<MedicalRecordLayout />} />,
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <MedicalRecordLayout />
+      </Suspense>
+    } />,
     children: [
       {
         path: "", // Add an index route if needed
-        element: <MedicalRecord />
+        element: <Suspense fallback={<PageLoading />}>
+          <MedicalRecord />
+        </Suspense>
       },
       {
         path: "logbook",
-        element: <Logbook />
+        element: <Suspense fallback={<PageLoading />}>
+          <Logbook />
+        </Suspense>
       },
       {
         path: "charts",
-        element: <Charts /> // Use Charts directly instead of ChartPage
+        element: <Suspense fallback={<PageLoading />}>
+          <Charts />
+        </Suspense>
       },
       {
         path: "symptoms",
-        element: <Symptoms />
+        element: <Suspense fallback={<PageLoading />}>
+          <Symptoms />
+        </Suspense>
       },
       {
         path: "labresult",
-        element: <LabResult />
+        element: <Suspense fallback={<PageLoading />}>
+          <LabResult />
+        </Suspense>
       },
       {
         path: "documents",
-        element: <Documents />
+        element: <Suspense fallback={<PageLoading />}>
+          <Documents />
+        </Suspense>
       }
     ]
   },
   // Updated Health Issues Routes
   {
     path: "/health-issues",
-    element: <PrivateRoute element={<HealthIssues />} />,
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <HealthIssues />
+      </Suspense>
+    } />,
   },
-  {
+  { 
     path: "/health-issues/:id",
-    element: <PrivateRoute element={<HealthIssueDetail />} />,
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <HealthIssueDetail />
+      </Suspense>
+    } />,
   },
   {
     path: "/health-issues/:id/:recordType/new",
-    element: <PrivateRoute element={<HealthIssueFormPage />} />,
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <HealthIssueFormPage />
+      </Suspense>
+    } />,
   },
   {
     path: "/health-issues/:id/edit",
-    element: <PrivateRoute element={<HealthIssueFormPage />} />,
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <HealthIssueFormPage />
+      </Suspense>
+    } />,
   },
   // Legacy route for backward compatibility
   {
     path: "/healthissues",
-    element: <PrivateRoute element={<HealthIssues />} />,
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <HealthIssues />
+      </Suspense>
+    } />,
   },
   {
     path: "/chat",
-    element: <PrivateRoute element={<Chat />} />,
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <Chat />
+      </Suspense>
+    } />,
   },
   {
     path: "/appointments",
-    element: <PrivateRoute element={<Appointments />} />,
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <Appointments />
+      </Suspense>
+    } />,
   },
   {
     path: "/settings",
-    element: <PrivateRoute element={<Settings />} />,
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <Settings />
+      </Suspense>
+    } />,
   },
   {
     path: "/medication",
-    element: <PrivateRoute element={<Medication />} />,
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <Medication />
+      </Suspense>
+    } />,
   },
+  // Clinicians routes
   {
     path: "/clinicians",
-    element: <PrivateRoute element={<Clinicians />} />,
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <Clinicians />
+      </Suspense>
+    } />,
+  },
+  {
+    path: "/clinicians/physician/:id",
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <ClinicianDetail />
+      </Suspense>
+    } />,
+  },
+  {
+    path: "/clinicians/diagnostic-center/:id",
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <DiagnosticCenterDetail />
+      </Suspense>
+    } />,
   },
   {
     path: "*",
-    element: <NotFound />,
+    element: <Suspense fallback={<PageLoading />}>
+      <NotFound />
+    </Suspense>,
   },
 ]);
 
 function App() {
   return (
-    <SentryErrorBoundary>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
-    </SentryErrorBoundary>
+    <Provider store={store}>
+      <PersistGate loading={<LoadingScreen />} persistor={persistor}>
+        <SentryErrorBoundary>
+          <AuthProvider>
+            <RouterProvider router={router} />
+          </AuthProvider>
+        </SentryErrorBoundary>
+      </PersistGate>
+    </Provider>
   );
 }
 

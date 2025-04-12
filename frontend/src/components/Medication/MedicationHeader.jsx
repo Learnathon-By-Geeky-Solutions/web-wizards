@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 
-const MedicationHeader = ({ fullName }) => {
+const MedicationHeader = ({ fullName = '' }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
-  // Display the first letter of user's name
-  const getFirstLetter = (name) => name?.[0].toUpperCase();
+  // Display the first letter of user's name with fallback
+  const getFirstLetter = (name) => {
+    if (!name) return 'U'; // Default to 'U' for User if no name is provided
+    return name[0].toUpperCase();
+  };
   
   return (
     <div className="flex justify-between items-center mb-6">
@@ -42,7 +45,7 @@ const MedicationHeader = ({ fullName }) => {
 };
 
 MedicationHeader.propTypes = {
-  fullName: PropTypes.string.isRequired,
+  fullName: PropTypes.string,
 };
 
 export default MedicationHeader;

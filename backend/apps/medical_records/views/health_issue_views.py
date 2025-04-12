@@ -2,9 +2,12 @@ from rest_framework import viewsets, permissions, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
-from ..models import HealthIssue
-from ..serializers import HealthIssueSerializer
+from ..models.health_issue import HealthIssue
+from ..serializers.health_issue_serializer import HealthIssueSerializer
 from django.db.models import Q
+import logging
+
+logger = logging.getLogger(__name__)
 
 class HealthIssueViewSet(viewsets.ModelViewSet):
     """
@@ -25,6 +28,25 @@ class HealthIssueViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         return HealthIssue.objects.filter(user=user)
+
+    def create(self, request, *args, **kwargs):
+        """
+        Override create to add debug logging
+        """
+        logger.debug(f"Received data for health issue creation: {request.data}")
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            logger.error(f"Validation errors: {serializer.errors}")
+            return Response(serializer.errors, status=400)
+
+        try:
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            logger.info(f"Successfully created health issue: {serializer.data}")
+            return Response(serializer.data, status=201, headers=headers)
+        except Exception as e:
+            logger.error(f"Error creating health issue: {str(e)}")
+            return Response({"error": "Failed to create health issue"}, status=500)
 
     def perform_create(self, serializer):
         """

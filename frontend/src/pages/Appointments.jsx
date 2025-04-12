@@ -1,4 +1,5 @@
-import React, { useState, useContext } from 'react';
+import React from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { AuthContext } from '../context/authContext';
 import Sidebar from '../components/Sidebar';
 import AppointmentHeader from '../components/Appointments/AppointmentHeader';
@@ -6,9 +7,12 @@ import AppointmentFilters from '../components/Appointments/AppointmentFilters';
 import AppointmentContent from '../components/Appointments/AppointmentContent';
 import useSentryTracking from '../hooks/useSentryTracking';
 import { withSentryErrorBoundary } from '../components/common/withSentryErrorBoundary';
+import { setFilter } from '../store/slices/appointmentSlice';
 
 const Appointments = () => {
-  const { user } = useContext(AuthContext);
+  const { user } = React.useContext(AuthContext);
+  const { appointments, filter: appointmentFilter, loading: isLoading } = useSelector(state => state.appointments);
+  const dispatch = useDispatch();
   
   // Initialize Sentry tracking
   const sentryTracking = useSentryTracking('Appointments', {
@@ -17,47 +21,9 @@ const Appointments = () => {
       userName: user?.name
     }
   });
-  
-  // States
-  const [appointmentFilter, setAppointmentFilter] = useState('all');
-  const [isLoading] = useState(false);
 
   const currentDateTime = '2025-02-16 11:09:10';
   
-  // Dummy appointment data
-  const [appointments, setAppointments] = useState([
-    {
-      id: 'apt-001',
-      title: 'Annual Physical Checkup',
-      date: '2025-03-15',
-      time: '09:30 AM',
-      doctorName: 'Sarah Johnson',
-      status: 'pending',
-      location: 'Central Hospital, Room 305',
-      notes: 'Please bring your medical records and arrive 15 minutes early'
-    },
-    {
-      id: 'apt-002',
-      title: 'Dental Cleaning',
-      date: '2025-03-20',
-      time: '14:00 PM',
-      doctorName: 'Michael Chen',
-      status: 'pending',
-      location: 'City Dental Clinic',
-      notes: 'Regular 6-month cleaning'
-    },
-    {
-      id: 'apt-003',
-      title: 'Follow-up Consultation',
-      date: '2025-02-05',
-      time: '11:15 AM',
-      doctorName: 'Emily Williams',
-      status: 'completed',
-      location: 'Community Healthcare Center',
-      notes: 'Blood pressure check and medication review'
-    }
-  ]);
-
   // Function to filter appointments based on selected filter
   const filteredAppointments = appointments.filter(appointment => {
     if (appointmentFilter === 'all') return true;
@@ -71,7 +37,7 @@ const Appointments = () => {
       newFilter 
     });
     
-    setAppointmentFilter(newFilter);
+    dispatch(setFilter(newFilter));
   };
 
   if (isLoading) {

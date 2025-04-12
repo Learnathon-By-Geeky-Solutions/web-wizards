@@ -14,17 +14,22 @@ const MedicationFilters = ({
       <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
         {/* Status filters */}
         <div className="flex items-center space-x-2">
-          {['Active', 'Inactive', 'All'].map((status) => (
+          {[
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+            { value: 'completed', label: 'Completed' },
+            { value: 'all', label: 'All' }
+          ].map((status) => (
             <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
+              key={status.value}
+              onClick={() => setStatusFilter(status.value)}
               className={`px-3 py-1 rounded-full ${
-                statusFilter === status
+                statusFilter.toLowerCase() === status.value
                   ? 'bg-teal-600 text-white'
                   : 'bg-gray-200 text-gray-700'
               }`}
             >
-              {status}
+              {status.label}
             </button>
           ))}
         </div>

@@ -10,6 +10,7 @@ const LogHealthIssueModal = ({ onClose, onSuccess }) => {
     title: '',
     description: '',
     start_date: new Date().toISOString().split('T')[0],
+    start_time: new Date().toTimeString().slice(0, 5),
     status: 'active',
     severity: 'medium'
   });
@@ -27,15 +28,6 @@ const LogHealthIssueModal = ({ onClose, onSuccess }) => {
     }
   };
 
-  const handleDateChange = (date, field) => {
-    setFormData(prev => ({ ...prev, [field]: date }));
-    
-    // Clear error when field is modified
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-  };
-
   const validateForm = () => {
     const newErrors = {};
     
@@ -45,6 +37,10 @@ const LogHealthIssueModal = ({ onClose, onSuccess }) => {
     
     if (!formData.start_date) {
       newErrors.start_date = 'Start date is required';
+    }
+
+    if (!formData.start_time) {
+      newErrors.start_time = 'Start time is required';
     }
     
     setErrors(newErrors);
@@ -60,9 +56,9 @@ const LogHealthIssueModal = ({ onClose, onSuccess }) => {
       setIsSubmitting(true);
       const newHealthIssue = await createHealthIssue(formData);
       onSuccess(newHealthIssue);
+      toast.success('Health issue created successfully');
     } catch (error) {
       console.error('Failed to create health issue:', error);
-      
       if (error.response && error.response.data) {
         // Handle validation errors from the API
         setErrors(error.response.data);
@@ -125,18 +121,19 @@ const LogHealthIssueModal = ({ onClose, onSuccess }) => {
           </div>
           
           <div className="mb-4">
-            <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-1">
-              Start Date <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Start Date & Time <span className="text-red-500">*</span>
             </label>
             <DateTimeInput
-              id="start_date"
-              value={formData.start_date}
-              onChange={(date) => handleDateChange(date, 'start_date')}
-              dateOnly={true}
-              className={`w-full ${errors.start_date ? 'border-red-500' : ''}`}
+              date={formData.start_date}
+              time={formData.start_time}
+              onDateChange={(value) => handleChange({ target: { name: 'start_date', value } })}
+              onTimeChange={(value) => handleChange({ target: { name: 'start_time', value } })}
             />
-            {errors.start_date && (
-              <p className="mt-1 text-sm text-red-500">{errors.start_date}</p>
+            {(errors.start_date || errors.start_time) && (
+              <p className="mt-1 text-sm text-red-500">
+                {errors.start_date || errors.start_time}
+              </p>
             )}
           </div>
           

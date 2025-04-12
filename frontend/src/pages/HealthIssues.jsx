@@ -1,206 +1,272 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { FaPlus, FaSearch } from 'react-icons/fa';
-import { fetchHealthIssues } from '../api/healthIssuesApi';
-import LogHealthIssueModal from '../components/HealthIssues/LogHealthIssueModal';
-import LoadingSpinner from '../components/common/LoadingSpinner';
-import EmptyState from '../components/common/EmptyState';
+import { useState, useEffect, useCallback } from "react";
+import { fetchHealthIssues, searchHealthIssues } from "../api/healthIssuesApi";
+import LogHealthIssueModal from "../components/HealthIssues/LogHealthIssueModal";
+import LoadingSpinner from "../components/common/LoadingSpinner";
+import EmptyState from "../components/common/EmptyState";
+import HealthIssueList from "../components/HealthIssues/HealthIssueList";
+import HealthIssuesHeader from "../components/HealthIssues/HealthIssuesHeader";
+import Sidebar from '../components/Sidebar';
+
+// Helper function to debounce API calls
+const debounce = (func, delay) => {
+  let timeoutId;
+  return (...args) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    timeoutId = setTimeout(() => {
+      func(...args);
+    }, delay);
+  };
+};
 
 const HealthIssues = () => {
   const [healthIssues, setHealthIssues] = useState([]);
-  const [filteredIssues, setFilteredIssues] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showLogModal, setShowLogModal] = useState(false);
+  const [allHealthIssues, setAllHealthIssues] = useState([]); // Store all issues for client-side filtering
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [isSearching, setIsSearching] = useState(false);
 
+  // Load all health issues on component mount
   useEffect(() => {
     loadHealthIssues();
   }, []);
 
-  useEffect(() => {
-    filterHealthIssues();
-  }, [healthIssues, searchQuery, statusFilter]);
-
   const loadHealthIssues = async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       const data = await fetchHealthIssues();
-      setHealthIssues(data);
-    } catch (error) {
-      console.error('Failed to load health issues:', error);
-      toast.error('Failed to load health issues');
+      const issues = Array.isArray(data) ? data : [];
+      setAllHealthIssues(issues); // Keep original list for client-side filtering
+      setHealthIssues(issues);
+      setError(null);
+    } catch (err) {
+      console.error("Error loading health issues:", err);
+      setError("Failed to load health issues");
+      setAllHealthIssues([]);
       setHealthIssues([]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const filterHealthIssues = () => {
-    let filtered = [...healthIssues];
-    
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(issue => issue.status === statusFilter);
+  const handleAddHealthIssue = async () => {
+    await loadHealthIssues(); // Reload the list after adding
+    setIsModalOpen(false);
+  };
+
+  const handleFilterChange = (filter) => {
+    setActiveFilter(filter);
+    applyFilters(searchQuery, filter);
+  };
+
+  // Perform API search if query is 3 or more characters, otherwise filter locally
+  const performSearch = async (query) => {
+    if (!query.trim()) {
+      // If search is cleared, restore all health issues with active filter only
+      applyFilters('', activeFilter);
+      return;
     }
     
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(issue => 
-        issue.title.toLowerCase().includes(query) || 
-        (issue.description && issue.description.toLowerCase().includes(query))
-      );
+    // For short queries, filter client-side for better performance
+    if (query.trim().length < 3) {
+      applyFilters(query, activeFilter);
+      return;
     }
     
-    setFilteredIssues(filtered);
-  };
-
-  const handleLogSuccess = (newIssue) => {
-    setHealthIssues(prev => [newIssue, ...prev]);
-    setShowLogModal(false);
-    toast.success('Health issue logged successfully');
-  };
-
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case 'active':
-        return 'bg-red-100 text-red-800';
-      case 'monitoring':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'resolved':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Not specified';
-    
-    const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">Health Issues</h1>
-        <button
-          onClick={() => setShowLogModal(true)}
-          className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-md flex items-center"
-        >
-          <FaPlus className="mr-2" /> Log Health Issue
-        </button>
-      </div>
+    try {
+      setIsSearching(true);
+      const results = await searchHealthIssues(query);
       
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        {/* Filters */}
-        <div className="p-4 border-b">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-grow">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaSearch className="text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search health issues..."
-                className="pl-10 pr-4 py-2 border rounded-md w-full focus:outline-none focus:ring-2 focus:ring-teal-500"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="inline-flex items-center">
-                <span className="text-gray-700 mr-2">Status:</span>
-                <select
-                  className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="all">All Issues</option>
-                  <option value="active">Active</option>
-                  <option value="monitoring">Monitoring</option>
-                  <option value="resolved">Resolved</option>
-                </select>
-              </label>
-            </div>
+      // Apply active filter to search results if needed
+      const filteredResults = activeFilter !== 'all' 
+        ? results.filter(issue => issue.status === activeFilter)
+        : results;
+      
+      setHealthIssues(filteredResults);
+      setError(null);
+    } catch (err) {
+      console.error("Error searching health issues:", err);
+      // Don't show error to user for search failures, just fall back to local filtering
+      applyFilters(query, activeFilter);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+  
+  // Debounced search function to limit API calls
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSearch = useCallback(
+    debounce((query) => performSearch(query), 300),
+    [activeFilter, allHealthIssues] // Dependencies that would affect the search
+  );
+
+  // Handler for search input changes
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    
+    // Immediately apply client-side filtering for responsive UI
+    if (!query.trim() || query.trim().length < 3) {
+      applyFilters(query, activeFilter);
+    } else {
+      // For longer queries, use the debounced search for API calls
+      debouncedSearch(query);
+    }
+  };
+
+  // Apply filters locally for better performance
+  const applyFilters = (query, filter) => {
+    const searchLower = query.toLowerCase();
+    const filtered = allHealthIssues.filter(issue => {
+      // Filter by status
+      if (filter !== 'all' && issue.status !== filter) {
+        return false;
+      }
+      
+      // Filter by search query (if any)
+      if (query) {
+        return (
+          issue.title?.toLowerCase().includes(searchLower) ||
+          issue.description?.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      return true;
+    });
+    
+    setHealthIssues(filtered);
+  };
+
+  // Replace the old filteredIssues with direct use of healthIssues
+  // which is already filtered by the handleSearch and handleFilterChange functions
+  const filteredIssues = healthIssues;
+
+  if (loading || isSearching) {
+    return (
+      <div className="flex min-h-screen bg-gray-100">
+        <Sidebar />
+        <div className="flex-1 ml-64 p-6">
+          <HealthIssuesHeader 
+            onFilterChange={handleFilterChange}
+            onSearch={handleSearch}
+            activeFilter={activeFilter}
+          />
+          <div className="flex justify-center items-center mt-12">
+            <LoadingSpinner />
+            <span className="ml-3 text-gray-600">
+              {loading ? "Loading health issues..." : "Searching..."}
+            </span>
           </div>
         </div>
-        
-        {/* Health Issues List */}
-        {isLoading ? (
-          <div className="p-8 flex justify-center">
-            <LoadingSpinner size="large" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen bg-gray-100">
+        <Sidebar />
+        <div className="flex-1 ml-64 p-6">
+          <HealthIssuesHeader 
+            onFilterChange={handleFilterChange}
+            onSearch={handleSearch}
+            activeFilter={activeFilter}
+          />
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <p>{error}</p>
+            <button 
+              onClick={loadHealthIssues}
+              className="mt-2 bg-red-500 hover:bg-red-700 text-white py-1 px-2 rounded text-sm"
+            >
+              Try Again
+            </button>
           </div>
-        ) : filteredIssues.length > 0 ? (
-          <ul className="divide-y divide-gray-200">
-            {filteredIssues.map((issue) => (
-              <li key={issue.id} className="hover:bg-gray-50">
-                <Link to={`/health-issues/${issue.id}`} className="block p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center mb-1">
-                        <h3 className="text-lg font-medium text-gray-900 mr-3">{issue.title}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(issue.status)}`}>
-                          {issue.status.charAt(0).toUpperCase() + issue.status.slice(1)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Started on {formatDate(issue.start_date)}
-                        {issue.status === 'resolved' && issue.end_date && (
-                          <span> · Ended on {formatDate(issue.end_date)}</span>
-                        )}
-                      </p>
-                      {issue.description && (
-                        <p className="mt-2 text-sm text-gray-600 line-clamp-2">{issue.description}</p>
-                      )}
-                    </div>
-                    <div className="ml-4">
-                      <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState
-            title="No health issues found"
-            description={
-              searchQuery || statusFilter !== 'all'
-                ? "Try adjusting your search criteria"
-                : "Log your first health issue to start tracking"
-            }
-            actionLabel={
-              searchQuery || statusFilter !== 'all'
-                ? "Clear filters"
-                : "Log Health Issue"
-            }
-            actionFn={
-              searchQuery || statusFilter !== 'all'
-                ? () => {
-                    setSearchQuery('');
-                    setStatusFilter('all');
-                  }
-                : () => setShowLogModal(true)
-            }
-            icon="medical"
+        </div>
+      </div>
+    );
+  }
+
+  if (!healthIssues || healthIssues.length === 0) {
+    return (
+      <div className="flex min-h-screen bg-gray-100">
+        <Sidebar />
+        <div className="flex-1 ml-64 p-6">
+          <HealthIssuesHeader 
+            onFilterChange={handleFilterChange}
+            onSearch={handleSearch}
+            activeFilter={activeFilter}
+          />
+          
+          <div className="flex justify-end mb-6">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md"
+            >
+              Log Health Issue
+            </button>
+          </div>
+          
+          {searchQuery || activeFilter !== 'all' ? (
+            <EmptyState 
+              title={`No ${activeFilter !== 'all' ? activeFilter : ''} health issues found`}
+              description={searchQuery 
+                ? `No results match "${searchQuery}"${activeFilter !== 'all' ? ` with status "${activeFilter}"` : ''}. Try a different search term or filter.`
+                : `No health issues with status "${activeFilter}" found. Try a different filter or create a new health issue.`
+              }
+              icon="search"
+            />
+          ) : (
+            <EmptyState 
+              title="No health issues"
+              description="You haven't logged any health issues yet. Click the button above to log your first health issue."
+              icon="health"
+            />
+          )}
+          
+          {isModalOpen && (
+            <LogHealthIssueModal
+              onClose={() => setIsModalOpen(false)}
+              onSuccess={handleAddHealthIssue}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen bg-gray-100">
+      <Sidebar />
+      <div className="flex-1 ml-64 p-6">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">Health Issues</h1>
+        
+        <HealthIssuesHeader 
+          onFilterChange={handleFilterChange}
+          onSearch={handleSearch}
+          activeFilter={activeFilter}
+        />
+        
+        <div className="flex justify-end mb-6">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md"
+          >
+            Log Health Issue
+          </button>
+        </div>
+
+        <HealthIssueList issues={filteredIssues} />
+
+        {isModalOpen && (
+          <LogHealthIssueModal
+            onClose={() => setIsModalOpen(false)}
+            onSuccess={handleAddHealthIssue}
           />
         )}
       </div>
-      
-      {showLogModal && (
-        <LogHealthIssueModal 
-          onClose={() => setShowLogModal(false)}
-          onSuccess={handleLogSuccess}
-        />
-      )}
     </div>
   );
 };

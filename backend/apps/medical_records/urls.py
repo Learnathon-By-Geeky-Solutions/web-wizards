@@ -1,13 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import (
-    HealthIssueViewSet,
-    LogbookEntryViewSet,
-    SymptomViewSet,
-    ChartViewSet,
-    LabResultViewSet,
-    DocumentViewSet,
-)
+from .views.health_issue_views import HealthIssueViewSet
+from .views.logbook_views import LogbookEntryViewSet
+from .views.symptom_views import SymptomViewSet
+from .views.chart_views import ChartViewSet
+from .views.lab_result_views import LabResultViewSet
+from .views.document_views import DocumentViewSet
 
 router = DefaultRouter()
 router.register(r'health-issues', HealthIssueViewSet, basename='health-issue')

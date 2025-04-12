@@ -37,11 +37,12 @@ const SymptomForm = ({ healthIssueId, onSuccess }) => {
     try {
       await createSymptom(formData);
       toast.success('Symptom recorded successfully');
+      // First call onSuccess if provided to trigger any parent updates
       if (onSuccess) {
-        onSuccess();
-      } else {
-        navigate(`/health-issues/${healthIssueId}`);
+        await onSuccess();
       }
+      // Then navigate back
+      navigate(`/health-issues/${healthIssueId}`);
     } catch (error) {
       console.error('Failed to record symptom:', error);
       toast.error('Failed to record symptom. Please try again.');

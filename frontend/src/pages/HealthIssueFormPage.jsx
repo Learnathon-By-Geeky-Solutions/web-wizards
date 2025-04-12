@@ -16,7 +16,7 @@ const HealthIssueFormPage = () => {
       case 'logbook':
         return <LogbookEntryForm healthIssueId={id} />;
       case 'symptoms':
-        return <SymptomForm healthIssueId={id} />;
+        return <SymptomForm healthIssueId={id} onSuccess={() => setShouldRefreshSymptoms(true)} />;
       case 'charts':
         return <ChartForm healthIssueId={id} />;
       case 'labs':

@@ -79,8 +79,6 @@ class GoogleCallbackView(APIView):
             email = user_info.get('email')
             name = user_info.get('name')
             given_name = user_info.get('given_name', '')
-            family_name = user_info.get('family_name', '')
-            picture = user_info.get('picture', '')
             
             # Check if user exists, create if not
             try:

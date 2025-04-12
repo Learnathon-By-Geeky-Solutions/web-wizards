@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaTimes } from 'react-icons/fa';
 
 const HealthIssuesHeader = ({ onFilterChange, onSearch, activeFilter = 'all' }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -10,9 +10,18 @@ const HealthIssuesHeader = ({ onFilterChange, onSearch, activeFilter = 'all' }) 
   };
 
   const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
+    const value = e.target.value;
+    setSearchQuery(value);
+    // Trigger search as user types
+    onSearch(value);
   };
 
+  const clearSearch = () => {
+    setSearchQuery('');
+    onSearch('');
+  };
+
+  // These are no longer needed for real-time search but keeping them for fallback
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     onSearch(searchQuery);
@@ -20,6 +29,7 @@ const HealthIssuesHeader = ({ onFilterChange, onSearch, activeFilter = 'all' }) 
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
+      e.preventDefault(); // Prevent form submission
       onSearch(searchQuery);
     }
   };
@@ -29,7 +39,7 @@ const HealthIssuesHeader = ({ onFilterChange, onSearch, activeFilter = 'all' }) 
       <h1 className="text-2xl font-bold">Health Issues</h1>
       <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
         <select 
-          className="border rounded px-3 py-2 w-full sm:w-auto"
+          className="border rounded px-3 py-2 w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-teal-500"
           onChange={handleFilterChange}
           value={activeFilter}
         >
@@ -42,13 +52,23 @@ const HealthIssuesHeader = ({ onFilterChange, onSearch, activeFilter = 'all' }) 
         <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-auto">
           <input
             type="text"
-            placeholder="Search issues..."
-            className="border rounded pl-9 pr-3 py-2 w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-teal-300"
+            placeholder="Search health issues..."
+            className="border rounded pl-9 pr-9 py-2 w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-teal-500"
             value={searchQuery}
             onChange={handleSearchChange}
             onKeyDown={handleKeyDown}
           />
           <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label="Clear search"
+            >
+              <FaTimes />
+            </button>
+          )}
         </form>
       </div>
     </div>

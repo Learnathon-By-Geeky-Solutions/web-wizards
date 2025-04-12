@@ -23,6 +23,7 @@ class LogbookEntry(BaseModel):
     entry_time = models.TimeField()
     title = models.CharField(max_length=255)
     notes = models.TextField(blank=True)
+    vital_signs = models.JSONField(null=True, blank=True)
     
     class Meta:
         ordering = ['-entry_date', '-entry_time']

@@ -2,8 +2,8 @@ services:
   frontend:
     build:
       context: ./frontend
-    ports:
-      - "5173:5173"  # Map Vite development server port
+    # ports:
+    #   - "5173:5173"  # Map Vite development server port - Exposed through Nginx instead
     volumes:
       - ./frontend:/app  # Mount local code
       - /app/node_modules  # Avoid overwriting node_modules
@@ -17,8 +17,8 @@ services:
   backend:
     build:
       context: ./backend
-    ports:
-      - "8000:8000"  # Map Django server port
+    # ports:
+    #   - "8000:8000"  # Map Django server port - Exposed through Nginx instead
     volumes:
       - ./backend:/app  # Mount local code
     depends_on:
@@ -30,6 +30,20 @@ services:
       sh -c "python /app/wait_for_db.py && 
              python manage.py migrate && 
              python manage.py runserver 0.0.0.0:8000"
+
+  ocr_service:
+    build:
+      context: ./ocr_service
+    ports:
+      - "8001:8000"  # Map FastAPI OCR service to port 8001
+    volumes:
+      - ./ocr_service:/app  # Mount local code
+    depends_on:
+      - backend
+      - db
+    env_file:
+      - .env
+    command: python run.py
 
   db:
     image: mysql:8.0
@@ -45,5 +59,150 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis cache service
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Nginx reverse proxy to handle routing to frontend/backend and provide SSL termination
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: always
+
+  # Prometheus - metrics collection and storage
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+
+  # Node Exporter - export host metrics to Prometheus
+  node-exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+
+  # Grafana - visualization dashboards for metrics and logs
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=securepassword
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - loki
+
+  # Loki - log aggregation system
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+
+  # Promtail - log shipper for Loki
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/log:/var/log:ro
+      - ./logs:/logs:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  # Nginx Exporter - export nginx metrics to Prometheus
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    ports:
+      - "9113:9113"
+    environment:
+      - SCRAPE_URI=http://nginx:80/metrics
+    depends_on:
+      - nginx
+    restart: unless-stopped
+
+  celery_worker:
+    build: ./backend
+    command: celery -A core worker -l INFO
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+      - db
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    networks:
+      - app-network
+
+  celery_beat:
+    build: ./backend
+    command: celery -A core beat -l INFO
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+      - db
+      - celery_worker
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    networks:
+      - app-network
+
 volumes:
   db_data:  # Named volume for MySQL persistence
+  prometheus_data:  # Named volume for Prometheus data
+  grafana_data:  # Named volume for Grafana data
+  loki_data:  # Named volume for Loki data
+  redis_data:  # Named volume for Redis data

@@ -17,28 +17,28 @@ const HealthIssueDetail = () => {
   
   const [healthIssue, setHealthIssue] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [shouldRefreshSymptoms, setShouldRefreshSymptoms] = useState(false);
+
   useEffect(() => {
     loadHealthIssue();
   }, [id]);
-  
+
   const loadHealthIssue = async () => {
     try {
       setIsLoading(true);
       const data = await fetchHealthIssueById(id);
       setHealthIssue(data);
     } catch (error) {
-      console.error('Failed to load health issue:', error);
+      console.error('Error loading health issue:', error);
       toast.error('Failed to load health issue details');
-      navigate('/health-issues');
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
@@ -151,7 +151,7 @@ const HealthIssueDetail = () => {
                 <FaPlus className="mr-2" /> Record Symptom
               </Link>
             </div>
-            <SymptomsList healthIssueId={id} />
+            <SymptomsList healthIssueId={id} onRefresh={shouldRefreshSymptoms} />
           </div>
         );
       case 'charts':

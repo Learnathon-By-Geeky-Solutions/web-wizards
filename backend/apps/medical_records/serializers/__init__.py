@@ -4,3 +4,5 @@ from .symptom_serializer import SymptomSerializer
 from .chart_serializer import ChartSerializer
 from .lab_result_serializer import LabResultSerializer
 from .document_serializer import DocumentSerializer
+from .cbc_test_serializer import CBCTestResultSerializer
+from .ure_test_serializer import URETestResultSerializer

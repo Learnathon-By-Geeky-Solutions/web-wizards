@@ -1,24 +1,51 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import CloseButton from './CloseButton';
+import { useGetHealthIssuesQuery, useAddHealthIssueLogEntryMutation } from '../../../store/api/healthIssuesApi';
 
-const VitalsModal = ({ setCurrentPage, onSave }) => {
+const VitalsModal = ({ setCurrentPage }) => {
   const [selectedVital, setSelectedVital] = useState(null);
-  const [formData, setFormData] = useState({ date: '', time: '', value: '' });
+  const [formData, setFormData] = useState({ 
+    date: new Date().toISOString().split('T')[0], 
+    time: new Date().toTimeString().slice(0, 5), 
+    value: '', 
+    health_issue: '',
+    notes: '' 
+  });
+  
+  const { data: healthIssues = [] } = useGetHealthIssuesQuery();
+  const [addLogEntry] = useAddHealthIssueLogEntryMutation();
 
-  const vitals = [
-    'Temperature',
-    'Blood sugar',
-    'Weight',
-    'Height',
-    'Oxygen saturation',
-    'Respiratory rate',
-  ];
+  const vitals = {
+    'Temperature': { unit: '°C', type: 'temperature' },
+    'Blood sugar': { unit: 'mg/dL', type: 'blood_sugar' },
+    'Weight': { unit: 'kg', type: 'weight' },
+    'Height': { unit: 'cm', type: 'height' },
+    'Oxygen saturation': { unit: '%', type: 'oxygen_saturation' },
+    'Respiratory rate': { unit: 'breaths/min', type: 'respiratory_rate' },
+  };
 
-  const handleSave = () => {
-    if (selectedVital && formData.date && formData.time && formData.value) {
-      onSave({ ...formData, vital: selectedVital });
-      setCurrentPage('LOGBOOK');
+  const handleSave = async () => {
+    if (selectedVital && formData.date && formData.time && formData.value && formData.health_issue) {
+      try {
+        const data = {
+          healthIssueId: formData.health_issue,
+          title: `${selectedVital} Measurement`,
+          notes: `Value: ${formData.value} ${vitals[selectedVital].unit}\n${formData.notes || ''}`,
+          entry_date: formData.date,
+          entry_time: formData.time,
+          vital_signs: {
+            [vitals[selectedVital].type]: {
+              value: formData.value,
+              unit: vitals[selectedVital].unit
+            }
+          }
+        };
+        await addLogEntry(data);
+        setCurrentPage('LOGBOOK');
+      } catch (error) {
+        console.error('Failed to save vital measurement:', error);
+      }
     }
   };
 
@@ -27,9 +54,9 @@ const VitalsModal = ({ setCurrentPage, onSave }) => {
       <CloseButton setCurrentPage={setCurrentPage} />
       {!selectedVital ? (
         <div>
-          <h2 className="text-xl font-semibold mb-4">Add new entry</h2>
+          <h2 className="text-xl font-semibold mb-4">Add new vital sign</h2>
           <div className="grid grid-cols-2 gap-4">
-            {vitals.map((vital) => (
+            {Object.keys(vitals).map((vital) => (
               <button
                 key={vital}
                 onClick={() => setSelectedVital(vital)}
@@ -65,7 +92,9 @@ const VitalsModal = ({ setCurrentPage, onSave }) => {
               />
             </div>
             <div className="mb-4">
-              <label htmlFor="value" className="block mb-1 font-medium">{selectedVital} Value</label>
+              <label htmlFor="value" className="block mb-1 font-medium">
+                {selectedVital} Value ({vitals[selectedVital].unit})
+              </label>
               <input
                 id="value"
                 type="text"
@@ -73,6 +102,33 @@ const VitalsModal = ({ setCurrentPage, onSave }) => {
                 onChange={(e) => setFormData({ ...formData, value: e.target.value })}
                 placeholder={`Enter ${selectedVital} value`}
                 className="border p-2 w-full rounded focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="health_issue" className="block mb-1 font-medium">Related Health Issue (Optional)</label>
+              <select
+                id="health_issue"
+                value={formData.health_issue}
+                onChange={(e) => setFormData({ ...formData, health_issue: e.target.value })}
+                className="border p-2 w-full rounded focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select a health issue</option>
+                {healthIssues.map(issue => (
+                  <option key={issue.id} value={issue.id}>
+                    {issue.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-4">
+              <label htmlFor="notes" className="block mb-1 font-medium">Notes (Optional)</label>
+              <textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                className="border p-2 w-full rounded focus:ring-2 focus:ring-blue-500"
+                rows="3"
+                placeholder="Add any additional notes"
               />
             </div>
             <button
@@ -90,8 +146,7 @@ const VitalsModal = ({ setCurrentPage, onSave }) => {
 };
 
 VitalsModal.propTypes = {
-  setCurrentPage: PropTypes.func.isRequired,
-  onSave: PropTypes.func.isRequired,
+  setCurrentPage: PropTypes.func.isRequired
 };
 
 export default VitalsModal;

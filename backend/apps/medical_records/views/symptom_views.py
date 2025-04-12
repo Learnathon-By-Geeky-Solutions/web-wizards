@@ -28,17 +28,20 @@ class SymptomViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """
         Set the user as the current user when creating a symptom.
+        Also handle the health issue association.
         """
         serializer.save(user=self.request.user)
 
     @action(detail=False, methods=['get'])
     def by_health_issue(self, request):
         """
-        Return symptoms for a specific health issue.
+        Return symptoms for a specific health issue or all symptoms if no health issue specified.
         """
         health_issue_id = request.query_params.get('health_issue_id', None)
-        if health_issue_id:
-            symptoms = self.get_queryset().filter(health_issue_id=health_issue_id)
-            serializer = self.get_serializer(symptoms, many=True)
-            return Response(serializer.data)
-        return Response([])
+        queryset = self.get_queryset()
+        
+        if health_issue_id and health_issue_id not in ['all', 'null']:
+            queryset = queryset.filter(health_issue_id=health_issue_id)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)

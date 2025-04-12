@@ -1,3 +1,4 @@
+import React from 'react';
 import PropTypes from 'prop-types';
 import UserProfile from '../Navbar/UserProfile';
 
@@ -11,13 +12,14 @@ const DashboardHeader = ({ user }) => {
 
   return (
     <div className="flex justify-between items-center mb-6">
-      <p className="text-gray-600">
+      <h1 className="text-2xl font-bold text-gray-800">
         Good {getTimeOfDay()}, {user?.name || 'User'}
-      </p>
+      </h1>
       <UserProfile />
     </div>
   );
 };
+
 DashboardHeader.propTypes = {
   user: PropTypes.shape({
     name: PropTypes.string,
