@@ -2,13 +2,11 @@ from rest_framework import viewsets, permissions, filters, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q
-from ..models import LabResult, CBCTestResult, URETestResult
-from ..serializers import (
-    LabResultSerializer, 
-    CBCTestResultSerializer, 
-    URETestResultSerializer
-)
+from django.db.models import Q, Count
+from ..models import LabResult
+from ..models.test_parameters import TestResult, ParameterValue
+from ..serializers import LabResultSerializer
+from ..serializers.test_serializers import TestResultSerializer, ParameterValueSerializer
 import datetime
 
 class LabResultViewSet(viewsets.ModelViewSet):
@@ -64,84 +62,6 @@ class LabResultViewSet(viewsets.ModelViewSet):
         return Response(test_counts)
 
     @action(detail=False, methods=['get'])
-    def cbc_results(self, request):
-        """
-        Get CBC test results with optional date range filtering
-        """
-        start_date = request.query_params.get('start_date')
-        end_date = request.query_params.get('end_date')
-        health_issue_id = request.query_params.get('health_issue_id')
-
-        # Get base queryset for CBC results
-        queryset = LabResult.objects.filter(
-            user=request.user,
-            test_name='CBC'
-        ).select_related('cbc_details')
-
-        # Apply filters
-        if start_date:
-            queryset = queryset.filter(test_date__gte=start_date)
-        if end_date:
-            queryset = queryset.filter(test_date__lte=end_date)
-        if health_issue_id:
-            queryset = queryset.filter(health_issue_id=health_issue_id)
-
-        # Order by test date
-        queryset = queryset.order_by('test_date')
-
-        # Serialize the results
-        data = []
-        for result in queryset:
-            if hasattr(result, 'cbc_details'):
-                serializer = CBCTestResultSerializer(result.cbc_details)
-                data.append({
-                    'date': result.test_date,
-                    'lab_name': result.lab_name,
-                    'data': serializer.data
-                })
-
-        return Response(data)
-
-    @action(detail=False, methods=['get'])
-    def ure_results(self, request):
-        """
-        Get URE test results with optional date range filtering
-        """
-        start_date = request.query_params.get('start_date')
-        end_date = request.query_params.get('end_date')
-        health_issue_id = request.query_params.get('health_issue_id')
-
-        # Get base queryset for URE results
-        queryset = LabResult.objects.filter(
-            user=request.user,
-            test_name='URE'
-        ).select_related('ure_details')
-
-        # Apply filters
-        if start_date:
-            queryset = queryset.filter(test_date__gte=start_date)
-        if end_date:
-            queryset = queryset.filter(test_date__lte=end_date)
-        if health_issue_id:
-            queryset = queryset.filter(health_issue_id=health_issue_id)
-
-        # Order by test date
-        queryset = queryset.order_by('test_date')
-
-        # Serialize the results
-        data = []
-        for result in queryset:
-            if hasattr(result, 'ure_details'):
-                serializer = URETestResultSerializer(result.ure_details)
-                data.append({
-                    'date': result.test_date,
-                    'lab_name': result.lab_name,
-                    'data': serializer.data
-                })
-
-        return Response(data)
-
-    @action(detail=False, methods=['get'])
     def parameter_history(self, request):
         """
         Get historical data for a specific test parameter
@@ -160,34 +80,31 @@ class LabResultViewSet(viewsets.ModelViewSet):
         end_date = datetime.date.today()
         start_date = end_date - datetime.timedelta(days=int(months) * 30)
 
-        # Get base queryset
-        queryset = LabResult.objects.filter(
-            user=request.user,
-            test_name=test_type,
-            test_date__range=[start_date, end_date]
-        ).order_by('test_date')
+        # Use the new test parameter system for retrieving data
+        parameters = ParameterValue.objects.filter(
+            test_result__lab_result__user=request.user,
+            parameter__code=parameter,
+            test_result__test_type__code=test_type,
+            test_result__performed_at__range=[start_date, end_date]
+        ).select_related('test_result', 'parameter').order_by('test_result__performed_at')
 
-        # Extract parameter values
+        # Format the response
         data = []
-        for result in queryset:
-            if test_type == 'CBC' and hasattr(result, 'cbc_details'):
-                value = getattr(result.cbc_details, parameter, None)
-                if value is not None:
-                    data.append({
-                        'date': result.test_date,
-                        'value': value,
-                        'lab': result.lab_name,
-                        'reference_range': result.cbc_details.reference_ranges.get(parameter, {})
-                    })
-            elif test_type == 'URE' and hasattr(result, 'ure_details'):
-                value = getattr(result.ure_details, parameter, None)
-                if value is not None:
-                    data.append({
-                        'date': result.test_date,
-                        'value': value,
-                        'lab': result.lab_name,
-                        'reference_range': result.ure_details.reference_ranges.get(parameter, {})
-                    })
+        for param in parameters:
+            # Check if parameter value is outside reference range
+            is_abnormal = param.is_abnormal
+            
+            data.append({
+                'date': param.test_result.performed_at,
+                'value': param.get_value(),
+                'lab': param.test_result.lab_result.lab_name,
+                'reference_range': {
+                    'min': param.parameter.min_value,
+                    'max': param.parameter.reference_range_json,
+                    'text': param.parameter.reference_range_json
+                },
+                'is_abnormal': is_abnormal
+            })
 
         return Response(data)
 
@@ -196,34 +113,41 @@ class LabResultViewSet(viewsets.ModelViewSet):
         """
         Get the latest test results of each type for the current user
         """
-        latest_results = {}
+        # Get distinct test types for this user
+        test_results = TestResult.objects.filter(
+            lab_result__user=request.user
+        ).order_by('test_type__code', '-performed_at')
         
-        # Get latest CBC result
-        latest_cbc = (
-            LabResult.objects.filter(user=request.user, test_name='CBC')
-            .select_related('cbc_details')
-            .order_by('-test_date')
-            .first()
-        )
-        if latest_cbc and hasattr(latest_cbc, 'cbc_details'):
-            latest_results['CBC'] = {
-                'date': latest_cbc.test_date,
-                'lab_name': latest_cbc.lab_name,
-                'data': CBCTestResultSerializer(latest_cbc.cbc_details).data
-            }
-
-        # Get latest URE result
-        latest_ure = (
-            LabResult.objects.filter(user=request.user, test_name='URE')
-            .select_related('ure_details')
-            .order_by('-test_date')
-            .first()
-        )
-        if latest_ure and hasattr(latest_ure, 'ure_details'):
-            latest_results['URE'] = {
-                'date': latest_ure.test_date,
-                'lab_name': latest_ure.lab_name,
-                'data': URETestResultSerializer(latest_ure.ure_details).data
-            }
-
+        # Get latest result for each test type
+        latest_results = {}
+        seen_test_types = set()
+        
+        for result in test_results:
+            test_type_code = result.test_type.code
+            if test_type_code not in seen_test_types:
+                seen_test_types.add(test_type_code)
+                
+                # Get parameters for this result
+                parameters = ParameterValue.objects.filter(test_result=result).select_related('parameter')
+                params_data = []
+                
+                for param in parameters:
+                    param_data = {
+                        'name': param.parameter.name,
+                        'code': param.parameter.code,
+                        'value': param.get_value(),
+                        'unit': param.parameter.unit,
+                        'reference_min': param.parameter.min_value,
+                        'reference_max': param.parameter.max_value,
+                        'reference_text': param.parameter.reference_range_json,
+                        'is_abnormal': param.is_abnormal
+                    }
+                    params_data.append(param_data)
+                
+                latest_results[test_type_code] = {
+                    'date': result.performed_at,
+                    'lab_name': result.lab_result.lab_name,
+                    'data': params_data
+                }
+        
         return Response(latest_results)

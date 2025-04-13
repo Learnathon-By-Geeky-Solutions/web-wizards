@@ -94,18 +94,24 @@ const Logbook = () => {
   // Show error states if API calls fail
   if (healthIssuesError) {
     return (
-      <div className="text-center p-4 text-red-600">
-        <p>Error loading health issues. Please try again later.</p>
+      <div className="p-6">
+        <div className="text-center p-4 text-red-600">
+          <p>Error loading health issues. Please try again later.</p>
+        </div>
       </div>
     );
   }
 
   if (isLoadingHealthIssues) {
-    return <div className="flex justify-center items-center p-8">Loading health issues...</div>;
+    return (
+      <div className="p-6">
+        <div className="flex justify-center items-center p-8">Loading health issues...</div>
+      </div>
+    );
   }
 
   return (
-    <div className="mt-6">
+    <div>
       {currentPage === 'LOGBOOK' && (
         <div>
           <h1 className="text-2xl font-bold mb-4">Logbook</h1>

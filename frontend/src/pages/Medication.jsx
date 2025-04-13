@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+import MainLayout from '../layouts/MainLayout';
 import MedicationHeader from '../components/Medication/MedicationHeader';
 import MedicationFilters from '../components/Medication/MedicationFilters';
 import MedicationPlansList from '../components/Medication/MedicationPlansList';
@@ -153,13 +153,16 @@ const Medication = () => {
   };
 
   if (isLoading && medicationPlans.length === 0) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    return (
+      <MainLayout>
+        <div className="flex justify-center items-center h-full">Loading...</div>
+      </MainLayout>
+    );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      <div className="flex-1 ml-64 p-6 relative">
+    <MainLayout>
+      <div className="p-6 relative">
         <NotificationsMenu 
           notifications={notifications} 
           setNotifications={(newNotifications) => dispatch(setNotifications(newNotifications))} 
@@ -214,7 +217,7 @@ const Medication = () => {
           initialData={editingPlan}
         />
       </div>
-    </div>
+    </MainLayout>
   );
 };
 

@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import Home from './pages/Home';
 import LoadingScreen from './components/common/LoadingScreen';
 import { AuthProvider, AuthContext } from './context/authContext';
+import { UserProvider } from './context/UserContext'; // Import UserProvider
 import SentryErrorBoundary from './components/common/SentryErrorBoundary';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -26,10 +27,12 @@ const HealthIssueDetail = lazy(() => import('./pages/HealthIssueDetail'));
 const HealthIssueFormPage = lazy(() => import('./pages/HealthIssueFormPage'));
 const Chat = lazy(() => import('./pages/Chat'));
 const Appointments = lazy(() => import('./pages/Appointments'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
 // Updated imports for Medical Record pages
-const MedicalRecordLayout = lazy(() => import('./pages/MedicalRecordLayout'));
-const MedicalRecord = lazy(() => import('./pages/MedicalRecord'));
+const MedicalRecordLayout = lazy(() => import('./layouts/MedicalRecordLayout'));
+const PatientMedicalProfile = lazy(() => import('./pages/PatientMedicalProfile'));
 const Documents = lazy(() => import('./pages/Documents'));
 const Logbook = lazy(() => import('./pages/Logbook'));
 const LabResult = lazy(() => import('./pages/LabResult'));
@@ -101,6 +104,22 @@ const router = createBrowserRouter([
     } />,
   },
   {
+    path: "/forgot-password",
+    element: <PublicRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <ForgotPassword />
+      </Suspense>
+    } />,
+  },
+  {
+    path: "/reset-password/:uidb64/:token",
+    element: <PublicRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <ResetPassword />
+      </Suspense>
+    } />,
+  },
+  {
     path: "/google-callback",
     element: <PublicRoute element={
       <Suspense fallback={<PageLoading />}>
@@ -127,7 +146,7 @@ const router = createBrowserRouter([
       {
         path: "", // Add an index route if needed
         element: <Suspense fallback={<PageLoading />}>
-          <MedicalRecord />
+          <PatientMedicalProfile />
         </Suspense>
       },
       {
@@ -275,7 +294,9 @@ function App() {
       <PersistGate loading={<LoadingScreen />} persistor={persistor}>
         <SentryErrorBoundary>
           <AuthProvider>
-            <RouterProvider router={router} />
+            <UserProvider>
+              <RouterProvider router={router} />
+            </UserProvider>
           </AuthProvider>
         </SentryErrorBoundary>
       </PersistGate>

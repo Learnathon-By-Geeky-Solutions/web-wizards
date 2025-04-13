@@ -1,84 +1,93 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
+import { fetchDocuments } from '../../../api/documentApi';
+import DocumentCard from './DocumentCard';
+import LoadingSpinner from '../../common/LoadingSpinner';
 
-const DocumentsList = ({ setShowAddForm }) => {
-  return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Documents</h1>
-      </div>
+const DocumentsList = ({ refreshTrigger, setShowAddForm, onDocumentDeleted, documents }) => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [localDocuments, setLocalDocuments] = useState([]);
 
-      {/* Dropdowns for filtering */}
-      <div className="flex gap-4 mb-6">
-        <select className="border rounded px-3 py-2">
-          <option>All Health Issues</option>
-          <option>Cardiology</option>
-        </select>
-        <select className="border rounded px-3 py-2">
-          <option>All Documents</option>
-          <option>Epicrisis</option>
-          <option>Prescription</option>
-          <option>Laboratory results</option>
-          <option>Medical report</option>
-          <option>Referral</option>
-          <option>Other</option>
-        </select>
-      </div>
+  useEffect(() => {
+    // If documents are provided from props, use those
+    if (documents) {
+      setLocalDocuments(documents);
+      setLoading(false);
+      return;
+    }
 
-      {/* Search Bar with icon on right */}
-      <div className="relative mb-6">
-        <input
-          type="text"
-          placeholder="Search..."
-          className="border rounded pr-10 pl-3 py-2 focus:outline-none w-full"
-        />
-        <svg
-          className="w-6 h-6 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M21 21l-4-4m0 0A7 7 0 119.5 9.5a7 7 0 017 7z"
-          />
-        </svg>
-      </div>
+    // Otherwise, fetch documents directly (fallback behavior)
+    const loadDocuments = async () => {
+      setLoading(true);
+      try {
+        const documentsData = await fetchDocuments();
+        setLocalDocuments(documentsData);
+        setError(null);
+      } catch (err) {
+        console.error('Error loading documents:', err);
+        setError('Failed to load documents. Please try again later.');
+        toast.error('Error loading documents');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-        <p className="text-gray-500">
-          This user has not uploaded any documents yet.
-        </p>
-      </div>
+    loadDocuments();
+  }, [refreshTrigger, documents]);
 
-      {/* Floating Plus Button */}
+  if (loading) {
+    return <LoadingSpinner text="Loading documents..." />;
+  }
+
+  if (error) {
+    return <div className="text-red-500 p-4 text-center">{error}</div>;
+  }
+
+  // Common layout with add document button
+  const renderAddDocumentButton = () => (
+    <div className="flex justify-between items-center mb-6">
+      <h2 className="text-2xl font-semibold text-gray-800">Documents</h2>
       <button
         onClick={() => setShowAddForm(true)}
-        className="fixed right-6 bottom-6 p-4 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-lg"
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full flex items-center"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 4v16m8-8H4"
-          />
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
+        Add Document
       </button>
     </div>
   );
-};
 
-DocumentsList.propTypes = {
-    setShowAddForm: PropTypes.func.isRequired,
+  // Use documents from props if available, otherwise use locally fetched documents
+  const displayDocuments = localDocuments;
+
+  if (displayDocuments.length === 0) {
+    return (
+      <div>
+        {renderAddDocumentButton()}
+        <div className="text-center p-8 bg-gray-50 rounded-lg">
+          <p className="text-gray-500">No documents found</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {renderAddDocumentButton()}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {displayDocuments.map((document) => (
+          <DocumentCard 
+            key={document.id} 
+            document={document} 
+            onDeleted={onDocumentDeleted}
+          />
+        ))}
+      </div>
+    </div>
+  );
 };
 
 export default DocumentsList;

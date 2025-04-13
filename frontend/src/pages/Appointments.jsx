@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { AuthContext } from '../context/authContext';
-import Sidebar from '../components/Sidebar';
+import MainLayout from '../layouts/MainLayout';
 import AppointmentHeader from '../components/Appointments/AppointmentHeader';
 import AppointmentFilters from '../components/Appointments/AppointmentFilters';
 import AppointmentContent from '../components/Appointments/AppointmentContent';
@@ -42,23 +42,19 @@ const Appointments = () => {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen bg-gray-100">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-6">
+      <MainLayout>
+        <div className="p-6">
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
           </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      
-      {/* Main Content */}
-      <main className="flex-1 ml-64 p-6">
+    <MainLayout>
+      <div className="p-6">
         <AppointmentHeader currentDateTime={currentDateTime} />
         
         <AppointmentFilters 
@@ -71,8 +67,8 @@ const Appointments = () => {
           user={user}
           appointmentFilter={appointmentFilter}
         />
-      </main>
-    </div>
+      </div>
+    </MainLayout>
   );
 };
 

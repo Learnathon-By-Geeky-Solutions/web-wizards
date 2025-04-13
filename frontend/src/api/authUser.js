@@ -89,3 +89,30 @@ export const logoutUser = async () => {
   }
 };
 
+/**
+ * Sends a password reset request for the specified email
+ * @param {string} email - The user's email address
+ * @returns {Promise<object>} - Response from the server
+ */
+export const forgotPassword = async (email) => {
+  try {
+    const response = await fetch(`${API_URL}/api/users/forgot-password/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to send password reset email');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    throw error;
+  }
+};
+

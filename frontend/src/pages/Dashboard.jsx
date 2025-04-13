@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { AuthContext } from '../context/authContext';
-import Sidebar from '../components/Sidebar';
+import MainLayout from '../layouts/MainLayout';
 import DashboardHeader from '../components/Dashboard/DashboardHeader';
 import ChartSection from '../components/Dashboard/ChartSection';
 import SummarySection from '../components/Dashboard/SummarySection';
@@ -8,7 +8,8 @@ import withSentryErrorBoundary from '../components/common/withSentryErrorBoundar
 import useSentryTracking from '../hooks/useSentryTracking';
 
 const Dashboard = () => {
-  const { user } = useContext(AuthContext);
+  // Safe destructuring with default empty object to prevent null errors
+  const { user = {} } = useContext(AuthContext) || {};
   
   // Initialize Sentry tracking
   useSentryTracking('Dashboard', {
@@ -19,14 +20,13 @@ const Dashboard = () => {
   });
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      <div className="flex-1 ml-64 p-6">
+    <MainLayout>
+      <div className="p-6">
         <DashboardHeader user={user} />
         <ChartSection />
         <SummarySection />
       </div>
-    </div>
+    </MainLayout>
   );
 };
 

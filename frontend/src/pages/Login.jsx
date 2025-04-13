@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
+import { FcGoogle } from 'react-icons/fc'; // Import Google icon from react-icons
 import { initiateGoogleLogin } from '../api/oauthServices';
 import { authService } from '../services/authService';
 import { AuthContext } from '../context/authContext';
@@ -104,6 +105,13 @@ const Login = () => {
             <p className="text-red-500 text-sm mb-4">{errorMessage}</p>
           )}
 
+          {/* Forgot Password */}
+          <div className="text-right mb-4">
+            <Link to="/forgot-password" className="text-blue-500 hover:underline text-sm">
+              Forgot Password?
+            </Link>
+          </div>
+
           {/* Submit Button */}
           <button
             type="submit"
@@ -129,21 +137,8 @@ const Login = () => {
             disabled={isLoading}
             className="w-full bg-white border border-gray-300 p-3 rounded-lg flex items-center justify-center hover:bg-gray-50 transition duration-300"
           >
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"
-              alt="Google"
-              className="w-5 h-5 mr-2 inline-block"
-            />Sign in with Google
-          </button>
-          <button 
-            className="w-full bg-white border border-gray-300 p-3 rounded-lg flex items-center justify-center hover:bg-gray-50 transition duration-300"
-            disabled
-          >
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"
-              alt="Apple"
-              className="w-5 h-5 mr-2 inline-block"
-            /> Sign in with Apple
+            <FcGoogle className="w-5 h-5 mr-2" />
+            Sign in with Google
           </button>
         </div>
 

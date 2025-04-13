@@ -1,6 +1,6 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/authContext';
-import Sidebar from '../components/Sidebar';
+import MainLayout from '../layouts/MainLayout';
 import ChatHeader from '../components/Chat/ChatHeader';
 import ChatContent from '../components/Chat/ChatContent';
 import MessageInput from '../components/Chat/MessageInput';
@@ -24,15 +24,18 @@ const Chat = () => {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen bg-gray-100">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
-    </div>;
+    return (
+      <MainLayout>
+        <div className="flex justify-center items-center h-full">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+        </div>
+      </MainLayout>
+    );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      <div className="flex-1 ml-64 p-6 flex flex-col">
+    <MainLayout>
+      <div className="p-6 flex flex-col h-full">
         <ChatHeader user={user} />
         
         <div className="flex-1 flex flex-col bg-white rounded-lg shadow-md overflow-hidden">
@@ -40,7 +43,7 @@ const Chat = () => {
           <MessageInput onSendMessage={handleSendMessage} />
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 };
 

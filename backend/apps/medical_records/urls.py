@@ -1,21 +1,22 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views.health_issue_views import HealthIssueViewSet
-from .views.logbook_views import LogbookEntryViewSet
-from .views.symptom_views import SymptomViewSet
-from .views.chart_views import ChartViewSet
-from .views.lab_result_views import LabResultViewSet
-from .views.document_views import DocumentViewSet
+from .views import (
+    document_views,
+    health_issue_views,
+    lab_result_views,
+    test_parameter_views
+)
 
 router = DefaultRouter()
-router.register(r'health-issues', HealthIssueViewSet, basename='health-issue')
-router.register(r'logbook-entries', LogbookEntryViewSet, basename='logbook-entry')
-router.register(r'symptoms', SymptomViewSet, basename='symptom')
-router.register(r'charts', ChartViewSet, basename='chart')
-router.register(r'lab-results', LabResultViewSet, basename='lab-result')
-router.register(r'documents', DocumentViewSet, basename='document')
+router.register(r'health-issues', health_issue_views.HealthIssueViewSet, basename='healthissue')
+router.register(r'documents', document_views.DocumentViewSet, basename='document')
+router.register(r'lab-results', lab_result_views.LabResultViewSet, basename='labresult')
 
-app_name = 'medical_records'
+# Register test parameter related views
+router.register(r'test-types', test_parameter_views.TestTypeViewSet)
+router.register(r'parameters', test_parameter_views.ParameterDefinitionViewSet)
+router.register(r'test-results', test_parameter_views.TestResultViewSet, basename='testresult')
+router.register(r'test-parameters', test_parameter_views.ParameterValueViewSet, basename='testparameter')
 
 urlpatterns = [
     path('', include(router.urls)),

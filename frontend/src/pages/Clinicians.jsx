@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+import MainLayout from '../layouts/MainLayout';
 import SearchFilters from '../components/Clinicians/SearchFilters';
 import ClinicianCard from '../components/Clinicians/ClinicianCard';
 import DiagnosticCenterCard from '../components/Clinicians/DiagnosticCenterCard';
@@ -160,9 +160,8 @@ const Clinicians = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      <div className="flex-1 ml-64 p-6">
+    <MainLayout>
+      <div className="p-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-6">Find Healthcare Providers</h1>
         
         {/* Tabs */}
@@ -266,7 +265,7 @@ const Clinicians = () => {
           </div>
         )}
       </div>
-    </div>
+    </MainLayout>
   );
 };
 

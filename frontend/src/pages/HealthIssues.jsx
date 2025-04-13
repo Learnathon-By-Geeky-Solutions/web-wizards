@@ -5,7 +5,7 @@ import LoadingSpinner from "../components/common/LoadingSpinner";
 import EmptyState from "../components/common/EmptyState";
 import HealthIssueList from "../components/HealthIssues/HealthIssueList";
 import HealthIssuesHeader from "../components/HealthIssues/HealthIssuesHeader";
-import Sidebar from '../components/Sidebar';
+import MainLayout from '../layouts/MainLayout';
 
 // Helper function to debounce API calls
 const debounce = (func, delay) => {
@@ -146,9 +146,8 @@ const HealthIssues = () => {
 
   if (loading || isSearching) {
     return (
-      <div className="flex min-h-screen bg-gray-100">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-6">
+      <MainLayout>
+        <div className="p-6">
           <HealthIssuesHeader 
             onFilterChange={handleFilterChange}
             onSearch={handleSearch}
@@ -161,15 +160,14 @@ const HealthIssues = () => {
             </span>
           </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen bg-gray-100">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-6">
+      <MainLayout>
+        <div className="p-6">
           <HealthIssuesHeader 
             onFilterChange={handleFilterChange}
             onSearch={handleSearch}
@@ -185,15 +183,14 @@ const HealthIssues = () => {
             </button>
           </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   if (!healthIssues || healthIssues.length === 0) {
     return (
-      <div className="flex min-h-screen bg-gray-100">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-6">
+      <MainLayout>
+        <div className="p-6">
           <HealthIssuesHeader 
             onFilterChange={handleFilterChange}
             onSearch={handleSearch}
@@ -233,14 +230,13 @@ const HealthIssues = () => {
             />
           )}
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      <div className="flex-1 ml-64 p-6">
+    <MainLayout>
+      <div className="p-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-6">Health Issues</h1>
         
         <HealthIssuesHeader 
@@ -267,7 +263,7 @@ const HealthIssues = () => {
           />
         )}
       </div>
-    </div>
+    </MainLayout>
   );
 };
 

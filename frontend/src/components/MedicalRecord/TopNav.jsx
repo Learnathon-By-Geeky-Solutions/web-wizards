@@ -7,11 +7,12 @@ import {
   ChartBarIcon,
   DocumentIcon,
   BeakerIcon,
+  UserIcon,
 } from '@heroicons/react/24/outline';
 import UserProfile from '../Navbar/UserProfile';
 
 const topNavItems = [
-  { name: 'Dashboard', icon: Squares2X2Icon, path: '/dashboard' },
+  { name: 'Profile', icon: UserIcon, path: '/medicalrecord' },
   { name: 'Logbook', icon: BookOpenIcon, path: '/medicalrecord/logbook' },
   { name: 'Symptoms', icon: HeartIcon, path: '/medicalrecord/symptoms' },
   { name: 'Charts', icon: ChartBarIcon, path: '/medicalrecord/charts' },

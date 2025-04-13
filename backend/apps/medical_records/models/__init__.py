@@ -5,5 +5,3 @@ from .symptom import Symptom
 from .chart import Chart
 from .lab_result import LabResult
 from .document import Document
-from .cbc_test import CBCTestResult
-from .ure_test import URETestResult
