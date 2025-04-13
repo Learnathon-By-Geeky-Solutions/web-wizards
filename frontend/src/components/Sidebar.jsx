@@ -1,5 +1,5 @@
-import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import {
   Squares2X2Icon,
   ClipboardDocumentIcon,
@@ -8,9 +8,10 @@ import {
   CalendarIcon,
   Cog6ToothIcon,
   BeakerIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 
-function Sidebar() {
+function Sidebar({ onClose, isLargeScreen }) {
   const location = useLocation();
   
   const sidebar_menu = [
@@ -30,14 +31,27 @@ function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-teal-900 min-h-screen text-white p-4 space-y-4 fixed left-0">
-      <div className="flex items-center space-x-3 mb-8">
-        <img 
-          src="/logo.png" 
-          alt="Amarhealth Logo" 
-          className="w-8 h-8"
-        />
-        <h1 className="text-2xl font-bold">Amarhealth</h1>
+    <div className="w-64 bg-teal-900 min-h-screen text-white p-4 space-y-4">
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center space-x-3">
+          <img 
+            src="/logo.png" 
+            alt="Amarhealth Logo" 
+            className="w-8 h-8"
+          />
+          <h1 className="text-2xl font-bold">Amarhealth</h1>
+        </div>
+        
+        {/* Close button - only shown on mobile */}
+        {!isLargeScreen && (
+          <button 
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-teal-800 transition-colors"
+            aria-label="Close sidebar"
+          >
+            <XMarkIcon className="w-6 h-6 text-white" />
+          </button>
+        )}
       </div>
       
       <nav className="space-y-2">
@@ -53,6 +67,7 @@ function Sidebar() {
                   ? 'bg-teal-700 text-white shadow-lg' 
                   : 'text-gray-300 hover:bg-teal-800 hover:text-white'
               }`}
+              onClick={!isLargeScreen ? onClose : undefined}
             >
               <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-300'}`} />
               <span className="font-medium">{item.name}</span>
@@ -75,5 +90,10 @@ function Sidebar() {
     </div>
   );
 }
+
+Sidebar.propTypes = {
+  onClose: PropTypes.func.isRequired,
+  isLargeScreen: PropTypes.bool.isRequired,
+};
 
 export default Sidebar;
