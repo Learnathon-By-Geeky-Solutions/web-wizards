@@ -6,7 +6,7 @@ export const authApi = apiService.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation({
       query: (credentials) => ({
-        url: '/api/users/login/',  // Add leading slash for absolute path from baseUrl
+        url: 'users/login/',  // Add leading slash for absolute path from baseUrl
         method: 'POST',
         body: credentials,
         credentials: 'include', // Important for HttpOnly cookies
@@ -31,20 +31,20 @@ export const authApi = apiService.injectEndpoints({
     
     register: builder.mutation({
       query: (userData) => ({
-        url: '/api/users/register/',  // Add leading slash for absolute path from baseUrl
+        url: 'users/register/',  // Add leading slash for absolute path from baseUrl
         method: 'POST',
         body: userData,
       }),
     }),
     
     getProfile: builder.query({
-      query: () => '/api/users/profile/',  // Add leading slash for absolute path from baseUrl
+      query: () => 'users/profile/',  // Add leading slash for absolute path from baseUrl
       providesTags: ['User'],
     }),
     
     updateProfile: builder.mutation({
       query: (profileData) => ({
-        url: '/api/users/profile/',  // Add leading slash for absolute path from baseUrl
+        url: 'users/profile/',  // Add leading slash for absolute path from baseUrl
         method: 'PATCH',
         body: profileData,
       }),
@@ -53,7 +53,7 @@ export const authApi = apiService.injectEndpoints({
     
     logout: builder.mutation({
       query: () => ({
-        url: '/api/users/logout/',  // Add leading slash for absolute path from baseUrl
+        url: 'users/logout/',  // Add leading slash for absolute path from baseUrl
         method: 'POST',
         credentials: 'include', // Important for HttpOnly cookies
       }),
@@ -75,7 +75,7 @@ export const authApi = apiService.injectEndpoints({
 
     forgotPassword: builder.mutation({
       query: (email) => ({
-        url: '/api/users/forgot-password/',  // Add leading slash for absolute path from baseUrl
+        url: 'users/forgot-password/',  // Add leading slash for absolute path from baseUrl
         method: 'POST',
         body: { email },
       }),

@@ -3,7 +3,7 @@ import apiService from './apiService';
 export const userProfileApi = apiService.injectEndpoints({
   endpoints: (builder) => ({
     getUserProfile: builder.query({
-      query: () => 'api/users/profile/',
+      query: () => 'users/profile/',
       providesTags: ['Profile'],
     }),
     
@@ -13,7 +13,7 @@ export const userProfileApi = apiService.injectEndpoints({
         formData.append('image', imageFile);
         
         return {
-          url: 'api/users/upload-profile-image/',
+          url: 'users/upload-profile-image/',
           method: 'POST',
           // Don't set Content-Type when using FormData
           formData: true,
@@ -25,7 +25,7 @@ export const userProfileApi = apiService.injectEndpoints({
     
     updatePatientProfile: builder.mutation({
       query: (profileData) => ({
-        url: 'api/users/update-profile/',
+        url: 'users/update-profile/',
         method: 'PATCH',
         body: profileData,
       }),
