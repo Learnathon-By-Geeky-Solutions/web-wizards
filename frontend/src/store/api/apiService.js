@@ -1,9 +1,10 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { tokenService } from '../../services/tokenService';
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: 'http://localhost:8000/api',
+  baseUrl: 'http://localhost:8000',
   prepareHeaders: (headers) => {
-    const token = localStorage.getItem('accessToken');
+    const token = tokenService.getAccessToken();
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
@@ -14,7 +15,18 @@ const baseQuery = fetchBaseQuery({
 export const api = createApi({
   reducerPath: 'api',
   baseQuery,
-  tagTypes: ['HealthIssue', 'LogEntry', 'Symptom', 'LabResult', 'Document', 'MedicationPlan'],
+  tagTypes: [
+    'HealthIssue', 
+    'LogEntry', 
+    'Symptom', 
+    'LabResult', 
+    'Document', 
+    'MedicationPlan',
+    'User',
+    'Appointment',
+    'Chart',
+    'Profile'
+  ],
   endpoints: (builder) => ({
     // Health Issues endpoints
     getHealthIssues: builder.query({

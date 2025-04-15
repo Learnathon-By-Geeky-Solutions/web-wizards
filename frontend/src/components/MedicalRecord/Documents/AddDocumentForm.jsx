@@ -1,60 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-hot-toast';
-import { fetchHealthIssues } from '../../../api/healthIssuesApi';
-import { uploadAndProcessDocument } from '../../../api/documentApi';
+import { useGetHealthIssuesQuery } from '../../../store/api/healthIssuesApi';
+import { useUploadAndProcessDocumentMutation } from '../../../store/api/documentApi';
 
 const AddDocumentForm = ({ setShowAddForm, handleFileChange, selectedFile, onDocumentAdded }) => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState('12:00');
   const [documentType, setDocumentType] = useState('LAB_REPORT');
-  const [healthIssues, setHealthIssues] = useState([]);
   const [selectedHealthIssue, setSelectedHealthIssue] = useState('');
   const [notes, setNotes] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [ocrResults, setOcrResults] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // RTK Query hooks
+  const { data: healthIssues = [], isLoading } = useGetHealthIssuesQuery();
+  const [uploadAndProcessDocument, { isLoading: isSubmitting }] = useUploadAndProcessDocumentMutation();
 
-  // Fetch health issues for the current user using the API function
+  // Set the first health issue as selected when data is loaded
   useEffect(() => {
-    const loadHealthIssues = async () => {
-      setIsLoading(true);
-      try {
-        // Use the fetchHealthIssues function from API instead of axios
-        const response = await fetchHealthIssues();
-        
-        // Process the response to ensure it's always an array
-        let healthIssuesData = [];
-        
-        if (Array.isArray(response)) {
-          healthIssuesData = response;
-        } else if (response && typeof response === 'object') {
-          // Handle possible response formats like {results: [...]} or other nested structures
-          if (Array.isArray(response.results)) {
-            healthIssuesData = response.results;
-          } else if (response.data && Array.isArray(response.data)) {
-            healthIssuesData = response.data;
-          }
-        }
-        
-        console.log('Health issues loaded from API:', healthIssuesData);
-        setHealthIssues(healthIssuesData);
-        
-        // Set the first health issue as selected if available
-        if (healthIssuesData.length > 0) {
-          setSelectedHealthIssue(healthIssuesData[0].id.toString());
-        }
-      } catch (error) {
-        console.error('Error loading health issues:', error);
-        toast.error('Failed to load health issues');
-        setHealthIssues([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadHealthIssues();
-  }, []);
+    if (healthIssues?.length > 0) {
+      setSelectedHealthIssue(healthIssues[0].id.toString());
+    }
+  }, [healthIssues]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -63,12 +30,7 @@ const AddDocumentForm = ({ setShowAddForm, handleFileChange, selectedFile, onDoc
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      // Use only the date part (YYYY-MM-DD) as required by the server
-      // Store the time separately
-      
       // Create FormData object for the upload
       const formData = new FormData();
       formData.append('file', selectedFile);
@@ -81,8 +43,8 @@ const AddDocumentForm = ({ setShowAddForm, handleFileChange, selectedFile, onDoc
       formData.append('document_date', date); // Send only the date in YYYY-MM-DD format
       formData.append('document_time', time); // Send time separately if needed by the backend
       
-      // Use the uploadAndProcessDocument API function with FormData
-      const responseData = await uploadAndProcessDocument(formData);
+      // Use RTK Query mutation to upload document
+      const responseData = await uploadAndProcessDocument(formData).unwrap();
 
       // Check if OCR was successful for lab reports
       if (documentType === 'LAB_REPORT' && responseData.test_results) {
@@ -99,8 +61,6 @@ const AddDocumentForm = ({ setShowAddForm, handleFileChange, selectedFile, onDoc
     } catch (error) {
       console.error('Error uploading document:', error);
       toast.error('Failed to upload document. Please try again.');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 

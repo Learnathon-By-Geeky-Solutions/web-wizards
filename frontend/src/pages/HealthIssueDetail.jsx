@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { FaArrowLeft, FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
-import { fetchHealthIssueById, deleteHealthIssue } from '../api/healthIssuesApi';
+import { useGetHealthIssueQuery, useDeleteHealthIssueMutation } from '../store/api/healthIssuesApi';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import LogbookEntriesList from '../components/HealthIssues/LogbookEntriesList';
 import SymptomsList from '../components/HealthIssues/SymptomsList';
@@ -15,40 +15,22 @@ const HealthIssueDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  const [healthIssue, setHealthIssue] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
+  // RTK Query hooks
+  const { data: healthIssue, isLoading, refetch } = useGetHealthIssueQuery(id);
+  const [deleteHealthIssue, { isLoading: isDeleting }] = useDeleteHealthIssueMutation();
+  
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [shouldRefreshSymptoms, setShouldRefreshSymptoms] = useState(false);
 
-  useEffect(() => {
-    loadHealthIssue();
-  }, [id]);
-
-  const loadHealthIssue = async () => {
-    try {
-      setIsLoading(true);
-      const data = await fetchHealthIssueById(id);
-      setHealthIssue(data);
-    } catch (error) {
-      console.error('Error loading health issue:', error);
-      toast.error('Failed to load health issue details');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleDelete = async () => {
-    setIsDeleting(true);
     try {
-      await deleteHealthIssue(id);
+      await deleteHealthIssue(id).unwrap();
       toast.success('Health issue deleted successfully');
       navigate('/health-issues');
     } catch (error) {
       console.error('Failed to delete health issue:', error);
       toast.error('Failed to delete health issue');
-      setIsDeleting(false);
     }
   };
   

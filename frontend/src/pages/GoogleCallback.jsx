@@ -1,60 +1,88 @@
-import React, { useEffect, useContext, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { AuthContext } from '../context/authContext';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useProcessGoogleCallbackMutation } from '../store/api/oauthApi';
+import Spinner from '../components/ui/Spinner';
 
+/**
+ * Component to handle Google OAuth callback
+ * Extracts the code from the URL and processes it using oauthApi
+ */
 const GoogleCallback = () => {
-  const { loginWithGoogle } = useContext(AuthContext);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [status, setStatus] = useState('processing');
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const [processGoogleCallback] = useProcessGoogleCallbackMutation();
 
   useEffect(() => {
-    const handleCallback = async () => {
-      // Extract the authorization code from URL parameters
-      const searchParams = new URLSearchParams(location.search);
-      const code = searchParams.get('code');
-      
-      if (!code) {
-        setError('Authorization code not found in the URL');
-        return;
-      }
-      
+    const processCallback = async () => {
       try {
-        // Process the Google authentication
-        await loginWithGoogle(code);
-        navigate('/dashboard');
-      } catch (error) {
-        console.error('Google authentication error:', error);
-        setError('Failed to authenticate with Google. Please try again.');
+        // Extract authorization code from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        
+        if (!code) {
+          setStatus('error');
+          setError('No authorization code found in the URL.');
+          return;
+        }
+
+        // Process the callback code with RTK Query
+        await processGoogleCallback(code).unwrap();
+        
+        setStatus('success');
+        
+        // Navigate to dashboard or intended destination
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 1000);
+      } catch (err) {
+        setStatus('error');
+        setError(err.data?.detail || err.message || 'Failed to process Google login');
+        
+        // Navigate back to login after showing error
+        setTimeout(() => {
+          navigate('/login', { replace: true });
+        }, 3000);
       }
     };
 
-    handleCallback();
-  }, [location, loginWithGoogle, navigate]);
+    processCallback();
+  }, [processGoogleCallback, navigate]);
 
-  if (error) {
+  if (status === 'processing') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-          <h2 className="text-2xl font-semibold text-red-600 mb-4">Authentication Error</h2>
-          <p className="text-gray-700">{error}</p>
-          <button
-            onClick={() => navigate('/login')}
-            className="mt-4 w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
-          >
-            Go back to login
-          </button>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
+        <Spinner size="large" />
+        <h2 className="mt-4 text-xl font-medium">Processing Google login...</h2>
+        <p className="mt-2 text-gray-600">Please wait while we complete your authentication.</p>
+      </div>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
+        <div className="w-16 h-16 flex items-center justify-center rounded-full bg-red-100 text-red-500">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </div>
+        <h2 className="mt-4 text-xl font-medium text-red-600">Authentication Failed</h2>
+        <p className="mt-2 text-gray-600">{error || 'An unexpected error occurred'}</p>
+        <p className="mt-1 text-gray-500">Redirecting to login page...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-        <p className="mt-4 text-gray-700">Authenticating with Google...</p>
+    <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
+      <div className="w-16 h-16 flex items-center justify-center rounded-full bg-green-100 text-green-500">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
       </div>
+      <h2 className="mt-4 text-xl font-medium text-green-600">Login Successful!</h2>
+      <p className="mt-2 text-gray-600">Redirecting to dashboard...</p>
     </div>
   );
 };

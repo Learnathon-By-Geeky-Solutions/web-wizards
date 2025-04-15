@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
-import { registerUser } from '../api/authUser'; // Import the registerUser function
+import { useRegisterMutation } from '../store/api/authApi';
 
 const Register = () => {
   const {
@@ -13,11 +13,14 @@ const Register = () => {
   
   const navigate = useNavigate();
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+  
+  // RTK Query hook for user registration
+  const [registerUser, { isLoading }] = useRegisterMutation();
 
   const onSubmit = async (data) => {
     console.log(data);
     try {
-      const response = await registerUser(data);
+      const response = await registerUser(data).unwrap();
       console.log('Registration successful:', response);
       navigate('/login');
     } catch (error) {
@@ -254,8 +257,9 @@ const Register = () => {
           <button
             type="submit"
             className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+            disabled={isLoading}
           >
-            Register
+            {isLoading ? 'Registering...' : 'Register'}
           </button>
         </form>
 

@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import SymptomCard from './SymptomCard';
-import { useGetHealthIssueSymptomsQuery } from '../../../api/healthIssuesApi';
+import { useGetSymptomsByHealthIssueQuery } from '../../../store/api/healthIssuesApi';
 
 const SymptomsList = ({ healthIssueId, searchQuery }) => {
-  const { data: symptoms = [], isLoading, error } = useGetHealthIssueSymptomsQuery(
+  const { data: symptoms = [], isLoading, error } = useGetSymptomsByHealthIssueQuery(
     healthIssueId === 'all' ? null : healthIssueId
   );
 

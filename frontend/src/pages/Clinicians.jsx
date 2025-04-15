@@ -7,10 +7,10 @@ import ClinicianCard from '../components/Clinicians/ClinicianCard';
 import DiagnosticCenterCard from '../components/Clinicians/DiagnosticCenterCard';
 import Spinner from '../components/common/Spinner';
 import { 
-  fetchClinicians, 
-  fetchDiagnosticCenters, 
-  fetchSpecializations 
-} from '../api/cliniciansApi';
+  useGetCliniciansQuery, 
+  useGetDiagnosticCentersQuery, 
+  useGetSpecializationsQuery 
+} from '../store/api/cliniciansApi';
 import {
   setActiveTab,
   setClinicians,
@@ -35,35 +35,63 @@ const Clinicians = () => {
   } = useSelector(state => state.clinicians);
   const dispatch = useDispatch();
 
+  // Use RTK Query hooks
+  const { 
+    data: cliniciansData, 
+    isLoading: isLoadingClinicians, 
+    error: cliniciansError 
+  } = useGetCliniciansQuery(undefined, { skip: activeTab !== 'clinicians' });
+  
+  const { 
+    data: diagnosticCentersData, 
+    isLoading: isLoadingCenters, 
+    error: centersError 
+  } = useGetDiagnosticCentersQuery(undefined, { skip: activeTab !== 'centers' });
+  
+  const { 
+    data: specializationsData, 
+    isLoading: isLoadingSpecializations, 
+    error: specializationsError 
+  } = useGetSpecializationsQuery();
+
   // Load initial data
   useEffect(() => {
-    const loadData = async () => {
-      dispatch(setLoading(true));
-      try {
-        // Load specializations
-        const specializationsData = await fetchSpecializations();
-        dispatch(setSpecializations(specializationsData));
-        
-        // Load initial clinicians and diagnostic centers
-        if (activeTab === 'clinicians') {
-          const cliniciansData = await fetchClinicians();
-          dispatch(setClinicians(cliniciansData));
-        } else {
-          const centersData = await fetchDiagnosticCenters();
-          dispatch(setDiagnosticCenters(centersData));
-        }
-        
-        dispatch(setError(null));
-      } catch (err) {
-        console.error('Error loading clinicians data:', err);
-        dispatch(setError('Failed to load data. Please try again.'));
-      } finally {
-        dispatch(setLoading(false));
-      }
-    };
+    dispatch(setLoading(isLoadingClinicians || isLoadingCenters || isLoadingSpecializations));
     
-    loadData();
-  }, [activeTab, dispatch]);
+    // Handle errors
+    const currentError = cliniciansError || centersError || specializationsError;
+    if (currentError) {
+      console.error('Error loading clinicians data:', currentError);
+      dispatch(setError('Failed to load data. Please try again.'));
+    } else {
+      dispatch(setError(null));
+    }
+    
+    // Update redux store with RTK Query data
+    if (specializationsData) {
+      dispatch(setSpecializations(specializationsData));
+    }
+    
+    if (activeTab === 'clinicians' && cliniciansData) {
+      dispatch(setClinicians(cliniciansData));
+    }
+    
+    if (activeTab === 'centers' && diagnosticCentersData) {
+      dispatch(setDiagnosticCenters(diagnosticCentersData));
+    }
+  }, [
+    activeTab, 
+    dispatch, 
+    cliniciansData, 
+    diagnosticCentersData, 
+    specializationsData,
+    isLoadingClinicians,
+    isLoadingCenters,
+    isLoadingSpecializations,
+    cliniciansError,
+    centersError,
+    specializationsError
+  ]);
 
   // Handle filter changes
   const handleFilterChange = (filterName, value) => {

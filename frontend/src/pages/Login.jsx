@@ -1,9 +1,9 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import { FcGoogle } from 'react-icons/fc'; // Import Google icon from react-icons
-import { initiateGoogleLogin } from '../api/oauthServices';
-import { authService } from '../services/authService';
+import { FcGoogle } from 'react-icons/fc';
+import { useLoginMutation } from '../store/api/authApi';
+import { useInitiateGoogleLoginMutation } from '../store/api/oauthApi';
 import { AuthContext } from '../context/authContext';
 
 const Login = () => {
@@ -15,34 +15,42 @@ const Login = () => {
 
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const authContext = useContext(AuthContext);
-
-  useEffect(() => {
-    // Set auth context in service
-    authService.setAuthContext(authContext);
-  }, [authContext]);
+  const { setUser, setIsAuthenticated } = useContext(AuthContext);
+  
+  // RTK Query mutation hooks
+  const [login, { isLoading: isLoginLoading }] = useLoginMutation();
+  const [initiateGoogleLogin, { isLoading: isGoogleLoading }] = useInitiateGoogleLoginMutation();
+  
+  // Combined loading state
+  const isLoading = isLoginLoading || isGoogleLoading;
 
   const onSubmit = async (data) => {
     try {
-      setIsLoading(true);
-      await authService.login(data);
+      // Use RTK Query login mutation instead of authService
+      const result = await login(data).unwrap();
+      
+      // Explicitly update authentication state in context
+      if (result.user) {
+        setUser(result.user);
+        setIsAuthenticated(true);
+      }
+      
+      // Navigate to dashboard after successful login
       navigate('/dashboard');
     } catch (error) {
       console.error('Login failed:', error);
-      setErrorMessage(error.message || 'Login failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+      setErrorMessage(error.data?.detail || error.message || 'Login failed. Please try again.');
     }
   };
 
   const handleGoogleLogin = (e) => {
     e.preventDefault();
-    setIsLoading(true);
-    initiateGoogleLogin().catch(error => {
+    
+    // Use RTK Query mutation for Google login
+    const redirectUri = `${window.location.origin}/google-callback`;
+    initiateGoogleLogin(redirectUri).catch(error => {
       console.error('Failed to initiate Google login:', error);
       setErrorMessage('Failed to initiate Google login. Please try again.');
-      setIsLoading(false);
     });
   };
 

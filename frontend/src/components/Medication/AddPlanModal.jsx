@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { fetchHealthIssues } from '../../api/healthIssuesApi';
+import { useGetHealthIssuesQuery } from '../../store/api/healthIssuesApi';
 import { toast } from 'react-toastify';
 import MedicationSearch from './MedicationSearch';
 import MedicationTimeManager from './MedicationTimeManager';
@@ -21,12 +21,13 @@ const AddPlanModal = ({ isOpen, onClose, onSave, initialData = null }) => {
   
   const [selectedMedication, setSelectedMedication] = useState(null);
   const [healthIssues, setHealthIssues] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [times, setTimes] = useState([]);
+  
+  // Use RTK Query hook for health issues
+  const { data: healthIssuesData, isLoading: loading } = useGetHealthIssuesQuery();
 
   useEffect(() => {
     if (isOpen) {
-      loadHealthIssues();
       if (initialData) {
         // Convert status to proper case if needed (backend expects "Active" or "Inactive")
         let status = initialData.status || 'Active';
@@ -50,20 +51,6 @@ const AddPlanModal = ({ isOpen, onClose, onSave, initialData = null }) => {
       }
     }
   }, [isOpen, initialData]);
-
-  const loadHealthIssues = async () => {
-    try {
-      setLoading(true);
-      const data = await fetchHealthIssues();
-      setHealthIssues(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Failed to load health issues:', error);
-      toast.error('Failed to load health issues. Please try again.');
-      setHealthIssues([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -280,7 +267,7 @@ const AddPlanModal = ({ isOpen, onClose, onSave, initialData = null }) => {
               {loading ? (
                 <option disabled>Loading health issues...</option>
               ) : (
-                healthIssues.map(issue => (
+                healthIssuesData?.map(issue => (
                   <option key={issue.id} value={issue.id}>
                     {issue.title}
                   </option>

@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { toast } from 'react-toastify';
 import { FaTimes } from 'react-icons/fa';
-import { createHealthIssue } from '../../api/healthIssuesApi';
+import { useCreateHealthIssueMutation } from '../../store/api/healthIssuesApi';
 import DateTimeInput from '../common/DateTimeInput';
 
 const LogHealthIssueModal = ({ onClose, onSuccess }) => {
+  const [createHealthIssue, { isLoading }] = useCreateHealthIssueMutation();
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -15,7 +17,6 @@ const LogHealthIssueModal = ({ onClose, onSuccess }) => {
     severity: 'medium'
   });
   
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
@@ -53,8 +54,7 @@ const LogHealthIssueModal = ({ onClose, onSuccess }) => {
     if (!validateForm()) return;
     
     try {
-      setIsSubmitting(true);
-      const newHealthIssue = await createHealthIssue(formData);
+      const newHealthIssue = await createHealthIssue(formData).unwrap();
       onSuccess(newHealthIssue);
       toast.success('Health issue created successfully');
     } catch (error) {
@@ -66,8 +66,6 @@ const LogHealthIssueModal = ({ onClose, onSuccess }) => {
       } else {
         toast.error('Failed to create health issue');
       }
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -184,10 +182,10 @@ const LogHealthIssueModal = ({ onClose, onSuccess }) => {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isLoading}
               className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
             >
-              {isSubmitting ? 'Saving...' : 'Save'}
+              {isLoading ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>

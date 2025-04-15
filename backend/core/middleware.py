@@ -13,7 +13,7 @@ class RateLimitMiddleware(MiddlewareMixin):
             return None
 
         # Define rate limit parameters
-        rate_limit = 100  # Max requests allowed
+        rate_limit = 1000  # Max requests allowed
         time_window = 60  # Time window in seconds
 
         # Redis key for tracking requests

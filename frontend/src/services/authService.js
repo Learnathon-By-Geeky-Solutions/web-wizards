@@ -1,5 +1,6 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const TOKEN_REFRESH_THRESHOLD = 3 * 60 * 1000; // 3 minutes in milliseconds (adjusted for 15-min token)
+import { tokenService } from './tokenService';
 
 // Parse JWT and get expiration time
 const getTokenExpiryTime = (token) => {
@@ -36,7 +37,7 @@ class AuthService {
 
     // Check if token is close to expiration and refresh if needed
     async checkTokenExpiration() {
-        const token = localStorage.getItem('accessToken');
+        const token = tokenService.getAccessToken();
         if (!token) return;
         
         const expiryTime = getTokenExpiryTime(token);
@@ -66,12 +67,13 @@ class AuthService {
                 'Content-Type': 'application/json',
                 ...options.headers,
             },
+            credentials: 'include', // Include cookies in requests
         };
         
         // Add auth header if token exists
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-            requestOptions.headers['Authorization'] = `Bearer ${token}`;
+        const authHeader = tokenService.getAuthHeader();
+        if (authHeader) {
+            requestOptions.headers['Authorization'] = authHeader;
         }
         
         // Before making any request, check if token needs refreshing
@@ -87,15 +89,14 @@ class AuthService {
                     await this.refreshToken();
                     
                     // Retry the original request with new token
-                    const newToken = localStorage.getItem('accessToken');
-                    if (newToken) {
-                        requestOptions.headers['Authorization'] = `Bearer ${newToken}`;
+                    const newAuthHeader = tokenService.getAuthHeader();
+                    if (newAuthHeader) {
+                        requestOptions.headers['Authorization'] = newAuthHeader;
                         return fetch(url, requestOptions);
                     }
                 } catch (refreshError) {
                     // If refresh fails, logout
-                    localStorage.removeItem('accessToken');
-                    localStorage.removeItem('refreshToken');
+                    tokenService.clearTokens();
                     window.location.href = '/login';
                     throw refreshError;
                 }
@@ -123,7 +124,7 @@ class AuthService {
 
     // Refresh the token using the refresh token
     async refreshToken() {
-        const refreshToken = localStorage.getItem('refreshToken');
+        const refreshToken = tokenService.getRefreshToken();
         if (!refreshToken) {
             throw new Error('No refresh token available');
         }
@@ -134,6 +135,7 @@ class AuthService {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'include', // Include cookies in request
                 body: JSON.stringify({
                     refresh: refreshToken
                 }),
@@ -144,16 +146,18 @@ class AuthService {
             }
             
             const data = await response.json();
-            const { access } = data;
             
-            localStorage.setItem('accessToken', access);
+            // Store access token securely
+            if (data.access) {
+                tokenService.setAccessToken(data.access);
+            }
             
             // If refresh token rotation is enabled, update the refresh token too
             if (data.refresh) {
-                localStorage.setItem('refreshToken', data.refresh);
+                tokenService.setRefreshToken(data.refresh);
             }
             
-            return access;
+            return data;
         } catch (error) {
             console.error('Error refreshing token:', error);
             throw error;
@@ -169,8 +173,9 @@ class AuthService {
             
             const { access, refresh } = response;
             
-            localStorage.setItem('accessToken', access);
-            localStorage.setItem('refreshToken', refresh);
+            // Store tokens securely
+            tokenService.setAccessToken(access);
+            tokenService.setRefreshToken(refresh);
 
             // Start token refresh timer
             this.startTokenRefreshTimer();
@@ -189,7 +194,7 @@ class AuthService {
 
     async logout() {
         try {
-            const refreshToken = localStorage.getItem('refreshToken');
+            const refreshToken = tokenService.getRefreshToken();
             if (refreshToken) {
                 await this.apiRequest('/api/token/blacklist/', {
                     method: 'POST',
@@ -206,18 +211,17 @@ class AuthService {
                 clearInterval(this.tokenRefreshInterval);
             }
             
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
+            // Clear all tokens
+            tokenService.clearTokens();
         }
     }
 
     getAuthHeader() {
-        const token = localStorage.getItem('accessToken');
-        return token ? `Bearer ${token}` : '';
+        return tokenService.getAuthHeader();
     }
 
     isAuthenticated() {
-        return !!localStorage.getItem('accessToken');
+        return tokenService.isAuthenticated();
     }
 
     setAuthContext(context) {

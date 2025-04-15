@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { forgotPassword } from '../api/authUser';
+import { useForgotPasswordMutation } from '../store/api/authApi';
 
 const ForgotPassword = () => {
   const {
@@ -13,15 +13,18 @@ const ForgotPassword = () => {
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  
+  // RTK Query hook for forgot password
+  const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
 
   const onSubmit = async (data) => {
     try {
-      const response = await forgotPassword(data.email);
+      const response = await forgotPassword(data.email).unwrap();
       setMessage(response.message || 'Check your email for reset instructions.');
       setErrorMessage('');
       setTimeout(() => navigate('/login'), 3000);
     } catch (error) {
-      setErrorMessage(error.message || 'Something went wrong. Please try again.');
+      setErrorMessage(error.data?.detail || error.message || 'Something went wrong. Please try again.');
       setMessage('');
     }
   };

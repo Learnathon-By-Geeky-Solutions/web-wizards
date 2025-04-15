@@ -1,47 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { fetchDocuments } from '../../../api/documentApi';
+import { useGetDocumentsQuery } from '../../../store/api/documentApi';
 import DocumentCard from './DocumentCard';
 import LoadingSpinner from '../../common/LoadingSpinner';
 
 const DocumentsList = ({ refreshTrigger, setShowAddForm, onDocumentDeleted, documents }) => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // RTK Query hook for fetching documents
+  const { data: fetchedDocuments, isLoading, error: fetchError } = useGetDocumentsQuery(
+    undefined, // No filter parameters
+    {
+      skip: !!documents, // Skip fetching if documents are provided via props
+    }
+  );
+
   const [localDocuments, setLocalDocuments] = useState([]);
 
   useEffect(() => {
     // If documents are provided from props, use those
     if (documents) {
       setLocalDocuments(documents);
-      setLoading(false);
       return;
     }
 
-    // Otherwise, fetch documents directly (fallback behavior)
-    const loadDocuments = async () => {
-      setLoading(true);
-      try {
-        const documentsData = await fetchDocuments();
-        setLocalDocuments(documentsData);
-        setError(null);
-      } catch (err) {
-        console.error('Error loading documents:', err);
-        setError('Failed to load documents. Please try again later.');
-        toast.error('Error loading documents');
-      } finally {
-        setLoading(false);
-      }
-    };
+    // Otherwise, use documents fetched via RTK Query
+    if (fetchedDocuments) {
+      setLocalDocuments(fetchedDocuments);
+    }
+  }, [fetchedDocuments, documents, refreshTrigger]);
 
-    loadDocuments();
-  }, [refreshTrigger, documents]);
+  useEffect(() => {
+    if (fetchError) {
+      console.error('Error loading documents:', fetchError);
+      toast.error('Error loading documents');
+    }
+  }, [fetchError]);
 
-  if (loading) {
+  if (isLoading && !documents) {
     return <LoadingSpinner text="Loading documents..." />;
   }
 
-  if (error) {
-    return <div className="text-red-500 p-4 text-center">{error}</div>;
+  if (fetchError && !documents) {
+    return <div className="text-red-500 p-4 text-center">Failed to load documents. Please try again later.</div>;
   }
 
   // Common layout with add document button

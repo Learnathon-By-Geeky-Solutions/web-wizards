@@ -1,19 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { fetchMedications } from '../../api/medicationsApi';
+import { useSearchMedicationsQuery, useGetMedicationCategoriesQuery } from '../../store/api/medicationApi';
 import { toast } from 'react-toastify';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import debounce from 'lodash/debounce';
 
 const MedicationSearch = ({ onSelect, selectedMedication }) => {
   const [query, setQuery] = useState('');
-  const [medications, setMedications] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-  const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
-
+  
+  // Fetch categories using RTK Query
+  const { 
+    data: categories = [],
+    error: categoriesError 
+  } = useGetMedicationCategoriesQuery();
+  
+  // Search medications with RTK Query
+  const { 
+    data: medications = [], 
+    isFetching: isLoading,
+    error: searchError 
+  } = useSearchMedicationsQuery(
+    { q: query, category: selectedCategory },
+    { skip: !query && !selectedCategory }
+  );
+  
   useEffect(() => {
     // Close dropdown when clicking outside
     const handleClickOutside = (event) => {
@@ -25,60 +38,40 @@ const MedicationSearch = ({ onSelect, selectedMedication }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
+  
   useEffect(() => {
-    // Load medication categories
-    const loadCategories = async () => {
-      try {
-        const response = await fetchMedications('/categories');
-        setCategories(response);
-      } catch (error) {
-        console.error('Error loading categories:', error);
-      }
-    };
-
-    loadCategories();
-  }, []);
-
-  const searchMedications = debounce(async (searchQuery, category) => {
-    if (!searchQuery && !category) {
-      setMedications([]);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const filters = {
-        q: searchQuery,
-        category: category
-      };
-      const results = await fetchMedications('/search', { params: filters });
-      setMedications(results);
+    // Show results when data is available
+    if (medications.length > 0 && !isLoading) {
       setIsOpen(true);
-    } catch (error) {
-      console.error('Error searching medications:', error);
-      toast.error('Failed to search medications. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
-  }, 300);
-
-  const handleQueryChange = (e) => {
+  }, [medications, isLoading]);
+  
+  useEffect(() => {
+    // Handle errors
+    if (categoriesError) {
+      console.error('Error loading categories:', categoriesError);
+      toast.error('Failed to load medication categories');
+    }
+    
+    if (searchError) {
+      console.error('Error searching medications:', searchError);
+      toast.error('Failed to search medications. Please try again.');
+    }
+  }, [categoriesError, searchError]);
+  
+  const handleQueryChange = debounce((e) => {
     const newQuery = e.target.value;
     setQuery(newQuery);
-    searchMedications(newQuery, selectedCategory);
-  };
-
+  }, 300);
+  
   const handleCategoryChange = (e) => {
     const category = e.target.value;
     setSelectedCategory(category);
-    searchMedications(query, category);
   };
 
   const handleSelect = (medication) => {
     onSelect(medication);
     setQuery('');
-    setMedications([]);
     setIsOpen(false);
   };
 
@@ -123,8 +116,8 @@ const MedicationSearch = ({ onSelect, selectedMedication }) => {
 
             <input
               type="text"
-              value={query}
-              onChange={handleQueryChange}
+              defaultValue={query}
+              onChange={(e) => handleQueryChange(e)}
               placeholder="Search medications..."
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
             />

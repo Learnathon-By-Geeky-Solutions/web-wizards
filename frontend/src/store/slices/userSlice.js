@@ -1,5 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { authService } from '../../services/authService';
+import { tokenService } from '../../services/tokenService';
 
 const initialState = {
   user: null,
@@ -37,7 +38,7 @@ export const { setUser, setLoading, setError, clearUser } = userSlice.actions;
 // Thunk for handling token refresh
 export const refreshUserSession = () => async (dispatch) => {
   try {
-    const refreshToken = localStorage.getItem('refreshToken');
+    const refreshToken = tokenService.getRefreshToken();
     if (!refreshToken) {
       dispatch(clearUser());
       return;
@@ -46,7 +47,7 @@ export const refreshUserSession = () => async (dispatch) => {
     // Use the authService to handle token refresh
     const response = await authService.refreshToken();
     if (response.access) {
-      localStorage.setItem('accessToken', response.access);
+      // Access token is now handled by tokenService internally
       // Update auth state if needed
       dispatch(setUser(response.user));
     }

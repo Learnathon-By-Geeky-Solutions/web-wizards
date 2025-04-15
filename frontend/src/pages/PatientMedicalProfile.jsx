@@ -5,7 +5,7 @@ import {
 } from '@heroicons/react/24/outline';
 import AddCondition from '../components/MedicalRecord/MedicalRecord/AddCondition';
 import AddAllergy from '../components/MedicalRecord/MedicalRecord/AddAllergy';
-import { uploadProfileImage, updatePatientProfile } from '../api/userProfile';
+import { useUploadProfileImageMutation, useUpdatePatientProfileMutation } from '../store/api/userProfileApi';
 import { AuthContext } from '../context/authContext';
 
 const PatientMedicalProfile = () => {
@@ -17,6 +17,10 @@ const PatientMedicalProfile = () => {
   const [isProfileUpdated, setIsProfileUpdated] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const firstLetter = fullName.charAt(0);
+
+  // RTK Query hooks
+  const [uploadProfileImage, { isLoading: isUploadingImage }] = useUploadProfileImageMutation();
+  const [updatePatientProfile, { isLoading: isUpdatingProfile }] = useUpdatePatientProfileMutation();
 
   const [bloodGroup, setBloodGroup] = useState(user?.blood_group || 'None');
   const [height, setHeight] = useState(user?.height || 0);
@@ -51,8 +55,8 @@ const PatientMedicalProfile = () => {
     setUploadingImage(true);
     
     try {
-      // Upload image directly when selected
-      const response = await uploadProfileImage(file);
+      // Upload image using RTK Query mutation
+      const response = await uploadProfileImage(file).unwrap();
       console.log('Image uploaded successfully:', response);
       // Update the photoUrl with the actual Cloudinary URL from the response
       if (response && response.image) {
@@ -97,7 +101,8 @@ const PatientMedicalProfile = () => {
         weight: parseFloat(weight) || 0,
       };
 
-      const response = await updatePatientProfile(updatedData);
+      // Update profile using RTK Query mutation
+      const response = await updatePatientProfile(updatedData).unwrap();
       console.log('Profile updated successfully:', response);
       setIsProfileUpdated(false);
       setIsSaving(false);

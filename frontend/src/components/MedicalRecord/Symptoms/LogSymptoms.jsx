@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { useGetHealthIssuesQuery } from '../../../api/healthIssuesApi';
-import { useCreateSymptomMutation } from '../../../store/api/apiService';
+import { useGetHealthIssuesQuery } from '../../../store/api/healthIssuesApi';
+import { useCreateSymptomForHealthIssueMutation } from '../../../store/api/healthIssuesApi';
 import { toast } from 'react-toastify';
 
 const LogSymptoms = ({ closeLogSymptoms, initialHealthIssue }) => {
   const { data: healthIssues = [], isLoading } = useGetHealthIssuesQuery();
-  const [createSymptom, { isLoading: isSubmitting }] = useCreateSymptomMutation();
+  const [createSymptom, { isLoading: isSubmitting }] = useCreateSymptomForHealthIssueMutation();
 
   const [formData, setFormData] = useState({
     healthIssue: initialHealthIssue || '',
@@ -36,15 +36,20 @@ const LogSymptoms = ({ closeLogSymptoms, initialHealthIssue }) => {
     if (!formData.noSymptoms && !formData.symptomName.trim()) {
       toast.error('Please enter a symptom name');
       return;
-    }    try {
+    }
+    
+    try {
+      const healthIssueId = parseInt(formData.healthIssue);
       const symptomData = {
-        health_issue: parseInt(formData.healthIssue),
-        name: formData.noSymptoms ? 'No symptoms' : formData.symptomName,
-        recorded_date: formData.date,
-        recorded_time: formData.time,
-        severity: formData.severity,
-        description: formData.noSymptoms ? 'Patient reported no symptoms' : '',
-        duration: ''
+        healthIssueId: healthIssueId,
+        symptomData: {
+          name: formData.noSymptoms ? 'No symptoms' : formData.symptomName,
+          recorded_date: formData.date,
+          recorded_time: formData.time,
+          severity: formData.severity,
+          description: formData.noSymptoms ? 'Patient reported no symptoms' : '',
+          duration: ''
+        }
       };
 
       await createSymptom(symptomData).unwrap();

@@ -1,6 +1,6 @@
 {
     "chat.agent.enabled": true,
-    "chat.agent.maxRequests": 50,
+    "chat.agent.maxRequests": 100,
     "github.copilot.chat.agent.thinkingTool": true,
     "chat.unifiedChatView": true,
     "github.copilot.chat.codesearch.enabled": true

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { fetchHealthIssues, searchHealthIssues } from "../api/healthIssuesApi";
+import { useGetHealthIssuesQuery, useLazySearchHealthIssuesQuery } from "../store/api/healthIssuesApi";
 import LogHealthIssueModal from "../components/HealthIssues/LogHealthIssueModal";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import EmptyState from "../components/common/EmptyState";
@@ -21,40 +21,49 @@ const debounce = (func, delay) => {
 };
 
 const HealthIssues = () => {
+  // RTK Query hooks
+  const { data: healthIssuesData, isLoading, error: fetchError, refetch } = useGetHealthIssuesQuery();
+  const [searchHealthIssues, { data: searchData, isLoading: isSearchLoading }] = useLazySearchHealthIssuesQuery();
+  
   const [healthIssues, setHealthIssues] = useState([]);
   const [allHealthIssues, setAllHealthIssues] = useState([]); // Store all issues for client-side filtering
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
-  // Load all health issues on component mount
+  // Load health issues when data is available from RTK Query
   useEffect(() => {
-    loadHealthIssues();
-  }, []);
-
-  const loadHealthIssues = async () => {
-    try {
-      setLoading(true);
-      const data = await fetchHealthIssues();
-      const issues = Array.isArray(data) ? data : [];
-      setAllHealthIssues(issues); // Keep original list for client-side filtering
+    if (healthIssuesData) {
+      const issues = Array.isArray(healthIssuesData) ? healthIssuesData : [];
+      setAllHealthIssues(issues);
       setHealthIssues(issues);
       setError(null);
-    } catch (err) {
-      console.error("Error loading health issues:", err);
+    } else if (fetchError) {
+      console.error("Error loading health issues:", fetchError);
       setError("Failed to load health issues");
       setAllHealthIssues([]);
       setHealthIssues([]);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [healthIssuesData, fetchError]);
+
+  // Update health issues when search results are available
+  useEffect(() => {
+    if (searchData) {
+      // Apply active filter to search results if needed
+      const filteredResults = activeFilter !== 'all' 
+        ? searchData.filter(issue => issue.status === activeFilter)
+        : searchData;
+      
+      setHealthIssues(filteredResults);
+      setIsSearching(false);
+    }
+  }, [searchData, activeFilter]);
 
   const handleAddHealthIssue = async () => {
-    await loadHealthIssues(); // Reload the list after adding
+    // Refetch health issues after adding new one
+    await refetch();
     setIsModalOpen(false);
   };
 
@@ -79,20 +88,12 @@ const HealthIssues = () => {
     
     try {
       setIsSearching(true);
-      const results = await searchHealthIssues(query);
-      
-      // Apply active filter to search results if needed
-      const filteredResults = activeFilter !== 'all' 
-        ? results.filter(issue => issue.status === activeFilter)
-        : results;
-      
-      setHealthIssues(filteredResults);
-      setError(null);
+      // Use RTK Query lazy search hook
+      await searchHealthIssues(query);
     } catch (err) {
       console.error("Error searching health issues:", err);
       // Don't show error to user for search failures, just fall back to local filtering
       applyFilters(query, activeFilter);
-    } finally {
       setIsSearching(false);
     }
   };
@@ -144,7 +145,7 @@ const HealthIssues = () => {
   // which is already filtered by the handleSearch and handleFilterChange functions
   const filteredIssues = healthIssues;
 
-  if (loading || isSearching) {
+  if (isLoading || isSearchLoading || isSearching) {
     return (
       <MainLayout>
         <div className="p-6">
@@ -156,7 +157,7 @@ const HealthIssues = () => {
           <div className="flex justify-center items-center mt-12">
             <LoadingSpinner />
             <span className="ml-3 text-gray-600">
-              {loading ? "Loading health issues..." : "Searching..."}
+              {isLoading ? "Loading health issues..." : "Searching..."}
             </span>
           </div>
         </div>
@@ -176,7 +177,7 @@ const HealthIssues = () => {
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             <p>{error}</p>
             <button 
-              onClick={loadHealthIssues}
+              onClick={refetch}
               className="mt-2 bg-red-500 hover:bg-red-700 text-white py-1 px-2 rounded text-sm"
             >
               Try Again
