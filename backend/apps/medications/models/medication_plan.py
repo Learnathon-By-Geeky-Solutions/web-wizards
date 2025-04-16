@@ -5,13 +5,22 @@ from .medication import Medication
 
 class MedicationPlan(BaseModel):
     """Model for storing individual patient medication plans"""
-    SCHEDULE_CHOICES = [
-        ('when_needed', 'When Needed'),
-        ('every_x_days', 'Every X Days'),
-        ('daily', 'Daily'),
-        ('specific_days', 'Specific Days'),
-        ('cycle', 'Take X Days, Rest Y Days'),
-    ]
+    
+    class ScheduleType(models.TextChoices):
+        WHEN_NEEDED = "when_needed", "When Needed"
+        DAILY = "daily", "Daily"
+        EVERY_X_DAYS = "every_x_days", "Every X Days"
+        SPECIFIC_DAYS = "specific_days", "Specific Days of Week"
+        CYCLE = "cycle", "Take X days and Rest Y days"
+
+    class FrequencyType(models.TextChoices):
+        TIMES_PER_DAY = "times_per_day", "X Times a Day"
+        EVERY_X_HOURS = "every_x_hours", "Every X Hours"
+
+    class DurationType(models.TextChoices):
+        ONGOING = "ongoing", "Ongoing"
+        FOR_X_DAYS = "for_x_days", "For X Days"
+        UNTIL_DATE = "until_date", "Until Date"
     
     STATUS_CHOICES = [
         ('Active', 'Active'),
@@ -52,19 +61,35 @@ class MedicationPlan(BaseModel):
     effective_time = models.TimeField()
     
     # Schedule information
-    schedule_type = models.CharField(max_length=20, choices=SCHEDULE_CHOICES)
-    frequency_days = models.PositiveIntegerField(default=1, help_text="For 'Every X Days' schedule")
-    specific_days = models.CharField(max_length=100, blank=True, null=True, 
-                                     help_text="Comma-separated days of week (e.g., 'Mon,Wed,Fri')")
+    schedule_type = models.CharField(max_length=50, choices=ScheduleType.choices)
+    every_x_days = models.PositiveIntegerField(null=True, blank=True, help_text="For 'Every X Days' schedule")
+    specific_days_of_week = models.JSONField(null=True, blank=True, help_text="['mon','wed','fri']")
     cycle_active_days = models.PositiveIntegerField(default=0, help_text="Days to take medication in cycle")
     cycle_rest_days = models.PositiveIntegerField(default=0, help_text="Days to rest in cycle")
     
+    # Frequency
+    frequency_type = models.CharField(
+        max_length=50, 
+        choices=FrequencyType.choices, 
+        default=FrequencyType.TIMES_PER_DAY
+    )
+    times_per_day = models.PositiveIntegerField(default=1)
+    every_x_hours = models.PositiveIntegerField(null=True, blank=True)
+    
+    # Time of day
+    exact_times = models.JSONField(null=True, blank=True, help_text='["08:00", "14:00"]')
+    
     # Dose information
     dose_amount = models.CharField(max_length=100, help_text="e.g., '10mg', '1 tablet'")
-    times_per_day = models.PositiveIntegerField(default=1)
     
     # Duration
-    end_date = models.DateField(null=True, blank=True, help_text="Leave blank if ongoing")
+    duration_type = models.CharField(
+        max_length=50, 
+        choices=DurationType.choices,
+        default=DurationType.ONGOING
+    )
+    number_of_days = models.PositiveIntegerField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
     
     # Health issue connection
     health_issue = models.ForeignKey(

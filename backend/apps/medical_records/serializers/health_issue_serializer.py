@@ -7,16 +7,16 @@ class HealthIssueSerializer(serializers.ModelSerializer):
     class Meta:
         model = HealthIssue
         fields = [
-            'id', 'user', 'title', 'description', 
+            'id', 'user', 'name', 'description', 
             'start_date', 'start_time', 'end_date', 'end_time', 
             'status', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'user']
 
-    def validate_title(self, value):
-        """Validate the title field"""
+    def validate_name(self, value):
+        """Validate the name field"""
         if not value.strip():
-            raise serializers.ValidationError("Title cannot be empty or whitespace")
+            raise serializers.ValidationError("Name cannot be empty or whitespace")
         return value.strip()
 
     def validate(self, data):

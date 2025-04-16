@@ -6,7 +6,7 @@ from apps.medical_records.serializers import HealthIssueSerializer
 class MedicationTimeSerializer(serializers.ModelSerializer):
     class Meta:
         model = MedicationTime
-        fields = ['id', 'time', 'day_of_week', 'is_daily', 'dose_override', 'is_active_cycle_day', 'notes']
+        fields = ['id', 'time', 'day_of_week', 'is_daily', 'dose_override', 'is_active_cycle_day', 'day_in_cycle', 'notes']
 
 class MedicationPlanSerializer(serializers.ModelSerializer):
     medication_times = MedicationTimeSerializer(many=True, read_only=True)
@@ -17,10 +17,14 @@ class MedicationPlanSerializer(serializers.ModelSerializer):
         model = MedicationPlan
         fields = [
             'id', 'user', 'medication', 'custom_medication_name',
-            'dose_amount', 'schedule_type', 'instructions', 'description',
-            'effective_date', 'effective_time', 'end_date', 'status', 'health_issue',
+            'dose_amount', 'schedule_type', 'frequency_type', 'times_per_day',
+            'every_x_hours', 'every_x_days', 'specific_days_of_week',
+            'cycle_active_days', 'cycle_rest_days', 'exact_times',
+            'duration_type', 'number_of_days', 'end_date',
+            'instructions', 'description',
+            'effective_date', 'effective_time', 'status', 'health_issue',
             'health_issue_data', 'medication_times', 'notifications_enabled',
-            'times'
+            'times', 'notes'
         ]
         read_only_fields = ['id', 'user']
         

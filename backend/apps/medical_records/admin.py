@@ -11,9 +11,9 @@ from .models.test_parameters import TestType, ParameterDefinition, TestResult, P
 
 @admin.register(HealthIssue)
 class HealthIssueAdmin(admin.ModelAdmin):
-    list_display = ('title', 'user', 'start_date', 'status')
+    list_display = ('name', 'user', 'start_date', 'status')
     list_filter = ('status', 'start_date')
-    search_fields = ('title', 'description')
+    search_fields = ('name', 'description')
 
 @admin.register(LogbookEntry)
 class LogbookEntryAdmin(admin.ModelAdmin):

@@ -1,175 +1,180 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { FiClock } from 'react-icons/fi';
 
-const MedicationTimeManager = ({ onTimesSave }) => {
+const MedicationTimeManager = ({ 
+  onTimesSave, 
+  scheduleType, 
+  frequencyType, 
+  cycleActivedays, 
+  cycleRestDays, 
+  specificDaysOfWeek 
+}) => {
   const [times, setTimes] = useState([]);
-  const [time, setTime] = useState('');
-  const [isDaily, setIsDaily] = useState(false);
-  const [dayOfWeek, setDayOfWeek] = useState('');
-  const [doseOverride, setDoseOverride] = useState('');
+  const [editingIndex, setEditingIndex] = useState(null);
 
-  const daysOfWeek = [
-    { value: 0, label: 'Monday' },
-    { value: 1, label: 'Tuesday' },
-    { value: 2, label: 'Wednesday' },
-    { value: 3, label: 'Thursday' },
-    { value: 4, label: 'Friday' },
-    { value: 5, label: 'Saturday' },
-    { value: 6, label: 'Sunday' }
-  ];
+  // Reset times when schedule type or frequency type changes
+  useEffect(() => {
+    generateDefaultTimes();
+  }, [scheduleType, frequencyType]);
 
-  const handleAddTime = () => {
-    if (!time) return;
-
-    const newTime = {
-      time,
-      is_daily: isDaily,
-      day_of_week: isDaily ? null : parseInt(dayOfWeek),
-      dose_override: doseOverride || null
+  // Listen for changes in "times_per_day" and "every_x_hours" inputs
+  useEffect(() => {
+    const timesPerDayInput = document.querySelector('input[name="times_per_day"]');
+    const everyXHoursInput = document.querySelector('input[name="every_x_hours"]');
+    
+    const handleInputChange = () => {
+      generateDefaultTimes();
     };
+    
+    if (timesPerDayInput) {
+      timesPerDayInput.addEventListener('change', handleInputChange);
+    }
+    
+    if (everyXHoursInput) {
+      everyXHoursInput.addEventListener('change', handleInputChange);
+    }
+    
+    return () => {
+      if (timesPerDayInput) {
+        timesPerDayInput.removeEventListener('change', handleInputChange);
+      }
+      if (everyXHoursInput) {
+        everyXHoursInput.removeEventListener('change', handleInputChange);
+      }
+    };
+  }, [frequencyType]);
 
-    setTimes([...times, newTime]);
-    // Reset form
-    setTime('');
-    setDoseOverride('');
-  };
-
-  const handleRemoveTime = (index) => {
-    setTimes(times.filter((_, i) => i !== index));
-  };
-
-  const handleSave = () => {
+  // Notify parent component when times change
+  useEffect(() => {
     onTimesSave(times);
+  }, [times, onTimesSave]);
+
+  const generateDefaultTimes = () => {
+    if (scheduleType === 'when_needed') {
+      setTimes([]);
+      return;
+    }
+
+    let newTimes = [];
+    
+    if (frequencyType === 'times_per_day') {
+      const timesPerDay = parseInt(document.querySelector('input[name="times_per_day"]')?.value || '1', 10);
+      
+      if (timesPerDay > 0) {
+        // Distribute times throughout the day
+        for (let i = 0; i < timesPerDay; i++) {
+          const baseHour = 8; // Start at 8 AM
+          const hourInterval = Math.floor(14 / timesPerDay); // Spread across 14 hours (8 AM to 10 PM)
+          
+          const hour = (baseHour + i * hourInterval) % 24;
+          const timeString = `${hour.toString().padStart(2, '0')}:00`;
+          
+          newTimes.push({
+            time: timeString,
+            is_daily: true
+          });
+        }
+      }
+    } else if (frequencyType === 'every_x_hours') {
+      const hoursInterval = parseInt(document.querySelector('input[name="every_x_hours"]')?.value || '6', 10);
+      
+      if (hoursInterval > 0 && hoursInterval <= 24) {
+        const timesCount = Math.floor(24 / hoursInterval);
+        const baseTime = new Date();
+        baseTime.setHours(8, 0, 0); // Start at 8:00 AM
+        
+        for (let i = 0; i < timesCount; i++) {
+          const timeObj = new Date(baseTime);
+          timeObj.setHours(baseTime.getHours() + (i * hoursInterval));
+          
+          const hours = timeObj.getHours().toString().padStart(2, '0');
+          const minutes = timeObj.getMinutes().toString().padStart(2, '0');
+          const timeString = `${hours}:${minutes}`;
+          
+          newTimes.push({
+            time: timeString,
+            is_daily: true
+          });
+        }
+      }
+    }
+    
+    setTimes(newTimes);
+  };
+
+  const handleTimeClick = (index) => {
+    setEditingIndex(index);
+  };
+
+  const handleTimeChange = (e, index) => {
+    const newTimes = [...times];
+    newTimes[index].time = e.target.value;
+    setTimes(newTimes);
+    setEditingIndex(null);
+  };
+
+  const handleTimeInputBlur = () => {
+    setEditingIndex(null);
   };
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Medication Times</h3>
+    <div className="mt-4 border p-4 rounded-md bg-gray-50">
+      <h3 className="text-lg font-medium mb-3">Medication Times</h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Time
-          </label>
-          <input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
+      {times.length > 0 ? (
+        <div className="flex flex-wrap gap-4 justify-center">
+          {times.map((time, index) => (
+            <div key={index} className="flex flex-col items-center">
+              <div 
+                className="flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 hover:bg-teal-200 transition cursor-pointer mb-2"
+                onClick={() => handleTimeClick(index)}
+              >
+                <FiClock className="text-teal-600 text-xl" />
+              </div>
+              
+              {editingIndex === index ? (
+                <input
+                  type="time"
+                  value={time.time}
+                  onChange={(e) => handleTimeChange(e, index)}
+                  onBlur={handleTimeInputBlur}
+                  className="w-20 text-center border border-teal-500 rounded"
+                  autoFocus
+                />
+              ) : (
+                <span className="font-medium">{time.time}</span>
+              )}
+            </div>
+          ))}
         </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Dose Override (Optional)
-          </label>
-          <input
-            type="text"
-            value={doseOverride}
-            onChange={(e) => setDoseOverride(e.target.value)}
-            placeholder="e.g., 1 tablet"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
+      ) : (
+        <div className="text-center text-gray-500 italic">
+          {scheduleType === 'when_needed' ? 
+            "No scheduled times for 'When Needed' medications" : 
+            "No medication times configured"}
         </div>
-
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="isDaily"
-            checked={isDaily}
-            onChange={(e) => setIsDaily(e.target.checked)}
-            className="rounded text-teal-600"
-          />
-          <label htmlFor="isDaily" className="text-sm font-medium text-gray-700">
-            Take daily
-          </label>
-        </div>
-
-        {!isDaily && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Day of Week
-            </label>
-            <select
-              value={dayOfWeek}
-              onChange={(e) => setDayOfWeek(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required={!isDaily}
-            >
-              <option value="">Select a day</option>
-              {daysOfWeek.map(day => (
-                <option key={day.value} value={day.value}>
-                  {day.label}
-                </option>
-              ))}
-            </select>
-          </div>
+      )}
+      
+      <div className="mt-4 text-sm text-gray-600 text-center">
+        {frequencyType === 'times_per_day' && times.length > 0 && (
+          <p>Click on a clock to change the medication time</p>
+        )}
+        {frequencyType === 'every_x_hours' && times.length > 0 && (
+          <p>Medication times are spaced every {document.querySelector('input[name="every_x_hours"]')?.value || '6'} hours</p>
         )}
       </div>
-
-      <div className="flex justify-end space-x-2">
-        <button
-          type="button"
-          onClick={handleAddTime}
-          className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
-        >
-          Add Time
-        </button>
-      </div>
-
-      {times.length > 0 && (
-        <div className="mt-4">
-          <h4 className="font-medium mb-2">Scheduled Times:</h4>
-          <div className="space-y-2">
-            {times.map((t, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between bg-gray-50 p-2 rounded"
-              >
-                <div>
-                  <span className="font-medium">{t.time}</span>
-                  {t.is_daily ? (
-                    <span className="ml-2 text-sm text-gray-600">Daily</span>
-                  ) : (
-                    <span className="ml-2 text-sm text-gray-600">
-                      {daysOfWeek.find(d => d.value === t.day_of_week)?.label}
-                    </span>
-                  )}
-                  {t.dose_override && (
-                    <span className="ml-2 text-sm text-gray-600">
-                      ({t.dose_override})
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleRemoveTime(index)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {times.length > 0 && (
-        <div className="flex justify-end mt-4">
-          <button
-            type="button"
-            onClick={handleSave}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Save Schedule
-          </button>
-        </div>
-      )}
     </div>
   );
 };
 
 MedicationTimeManager.propTypes = {
   onTimesSave: PropTypes.func.isRequired,
+  scheduleType: PropTypes.string.isRequired,
+  frequencyType: PropTypes.string.isRequired,
+  cycleActivedays: PropTypes.number,
+  cycleRestDays: PropTypes.number,
+  specificDaysOfWeek: PropTypes.array
 };
 
 export default MedicationTimeManager;

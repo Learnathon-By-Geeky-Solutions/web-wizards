@@ -4,11 +4,12 @@ from .base import BaseModel
 
 class Medication(BaseModel):
     """Model for storing medication catalog information"""
-    name = models.CharField(max_length=255)
+    # name = models.CharField(max_length=255)
     generic_name = models.CharField(max_length=255, null=True, blank=True)
     brand_name = models.CharField(max_length=255, null=True, blank=True)
-    manufacturer = models.CharField(max_length=255, null=True, blank=True)
-    description = models.TextField(null=True, blank=True)
+    # manufacturer = models.CharField(max_length=255, null=True, blank=True)
+    # description = models.TextField(null=True, blank=True)
+    external_link = models.URLField(max_length=500, null=True, blank=True, help_text="Link to external page with medication details (e.g., medex.com.bd)")
     dosage_form = models.CharField(
         max_length=50,
         choices=[
@@ -51,18 +52,18 @@ class Medication(BaseModel):
             ('other', 'Other')
         ]
     )
-    contraindications = models.TextField(null=True, blank=True)
-    side_effects = models.TextField(null=True, blank=True)
-    storage_instructions = models.CharField(max_length=255, null=True, blank=True)
-    is_prescription_required = models.BooleanField(default=True)
+    # contraindications = models.TextField(null=True, blank=True)
+    # side_effects = models.TextField(null=True, blank=True)
+    # storage_instructions = models.CharField(max_length=255, null=True, blank=True)
+    # is_prescription_required = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
     image_url = models.URLField(max_length=500, blank=True, null=True)
-    image = CloudinaryField('image', null=True, blank=True)
+    # image = CloudinaryField('image', null=True, blank=True)
 
     class Meta:
-        ordering = ['name']
+        ordering = ['brand_name']
         indexes = [
-            models.Index(fields=['name']),
+            # models.Index(fields=['name']),
             models.Index(fields=['generic_name']),
             models.Index(fields=['brand_name']),
             models.Index(fields=['category']),
@@ -70,12 +71,12 @@ class Medication(BaseModel):
         ]
 
     def __str__(self):
-        return f"{self.name} - {self.strength} {self.unit}"
+        return f"{self.brand_name} - {self.strength} {self.unit}"
 
     @property
     def full_name(self):
         """Return a full descriptive name of the medication"""
-        parts = [self.name]
+        parts = [self.brand_name]
         if self.strength and self.unit:
             parts.append(f"{self.strength}{self.unit}")
         if self.dosage_form:

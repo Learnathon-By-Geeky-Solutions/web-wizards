@@ -17,7 +17,7 @@ class HealthIssue(BaseModel):
         on_delete=models.CASCADE,
         related_name='health_issues'
     )
-    title = models.CharField(max_length=255)
+    name = models.CharField(max_length=255)  # Renamed from title to name
     description = models.TextField(blank=True)
     start_date = models.DateField()
     start_time = models.TimeField()
@@ -31,4 +31,4 @@ class HealthIssue(BaseModel):
         verbose_name_plural = 'Health Issues'
 
     def __str__(self):
-        return f"{self.title} - {self.user.name}"
+        return f"{self.name} - {self.user.name}"
