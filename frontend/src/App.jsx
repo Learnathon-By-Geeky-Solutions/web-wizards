@@ -29,6 +29,7 @@ const Chat = lazy(() => import('./pages/Chat'));
 const Appointments = lazy(() => import('./pages/Appointments'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 
 // Updated imports for Medical Record pages
 const MedicalRecordLayout = lazy(() => import('./layouts/MedicalRecordLayout'));
@@ -112,7 +113,7 @@ const router = createBrowserRouter([
     } />,
   },
   {
-    path: "/reset-password/:uidb64/:token",
+    path: "/reset-password",
     element: <PublicRoute element={
       <Suspense fallback={<PageLoading />}>
         <ResetPassword />
@@ -277,6 +278,14 @@ const router = createBrowserRouter([
     element: <PrivateRoute element={
       <Suspense fallback={<PageLoading />}>
         <DiagnosticCenterDetail />
+      </Suspense>
+    } />,
+  },
+  {
+    path: "/verify-email/:token",
+    element: <PublicRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <VerifyEmail />
       </Suspense>
     } />,
   },

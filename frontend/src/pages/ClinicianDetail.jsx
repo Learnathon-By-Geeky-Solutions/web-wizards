@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+import MainLayout from '../layouts/MainLayout';
 import { 
-  fetchClinicianById, 
-  fetchReviewsForClinician,
-  submitReview
-} from '../api/cliniciansApi';
+  useGetClinicianByIdQuery,
+  useGetReviewsForClinicianQuery,
+  useSubmitReviewMutation
+} from '../store/api/cliniciansApi';
 import ReviewList from '../components/Clinicians/ReviewList';
 import ReviewForm from '../components/Clinicians/ReviewForm';
 import Spinner from '../components/common/Spinner';
@@ -24,36 +24,24 @@ import profilePlaceholder from '../assets/profile-placeholder.png';
 
 const ClinicianDetail = () => {
   const { id } = useParams();
-  const [clinician, setClinician] = useState(null);
-  const [reviews, setReviews] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  
+  // Use Redux query hooks
+  const { 
+    data: clinician, 
+    isLoading: clinicianLoading, 
+    error: clinicianError 
+  } = useGetClinicianByIdQuery(id);
+  
+  const { 
+    data: reviews = [], 
+    isLoading: reviewsLoading 
+  } = useGetReviewsForClinicianQuery(id);
+  
+  const [submitReview] = useSubmitReviewMutation();
 
-  // Fetch clinician details and reviews
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch clinician details
-        const clinicianData = await fetchClinicianById(id);
-        setClinician(clinicianData);
-        
-        // Fetch reviews for this clinician
-        const reviewsData = await fetchReviewsForClinician(id);
-        setReviews(reviewsData);
-        
-        setError(null);
-      } catch (err) {
-        console.error('Error loading clinician data:', err);
-        setError('Failed to load clinician details. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadData();
-  }, [id]);
+  const isLoading = clinicianLoading || reviewsLoading;
+  const error = clinicianError;
 
   // Handle submitting a new review
   const handleSubmitReview = async (reviewData) => {
@@ -65,10 +53,7 @@ const ClinicianDetail = () => {
       };
       
       // Submit the review
-      const newReview = await submitReview(reviewToSubmit);
-      
-      // Update the reviews list
-      setReviews([newReview, ...reviews]);
+      await submitReview(reviewToSubmit).unwrap();
       
       // Close the review form
       setShowReviewForm(false);
@@ -82,6 +67,11 @@ const ClinicianDetail = () => {
 
   // Display rating stars
   const renderRatingStars = (rating) => {
+    // Handle case where rating is not a number
+    if (rating === undefined || rating === null) {
+      return Array(5).fill().map((_, i) => <FaRegStar key={i} className="text-yellow-400" />);
+    }
+    
     const stars = [];
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
@@ -101,35 +91,32 @@ const ClinicianDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen bg-gray-100">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-6 flex justify-center items-center">
+      <MainLayout>
+        <div className="flex justify-center items-center p-6">
           <Spinner />
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   if (error || !clinician) {
     return (
-      <div className="flex min-h-screen bg-gray-100">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-6">
+      <MainLayout>
+        <div className="p-6">
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error || 'Clinician not found'}
+            {error?.data?.detail || error?.error || 'Clinician not found'}
           </div>
           <Link to="/clinicians" className="text-teal-500 hover:underline flex items-center">
             <FaArrowLeft className="mr-2" /> Back to Clinicians
           </Link>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      <div className="flex-1 ml-64 p-6">
+    <MainLayout>
+      <div className="p-6">
         {/* Back navigation */}
         <Link to="/clinicians" className="text-teal-500 hover:underline flex items-center mb-4">
           <FaArrowLeft className="mr-2" /> Back to Clinicians
@@ -176,7 +163,10 @@ const ClinicianDetail = () => {
                     {renderRatingStars(clinician.average_rating)}
                   </div>
                   <span className="text-sm text-gray-600">
-                    {clinician.average_rating.toFixed(1)} ({clinician.rating_count} reviews)
+                    {typeof clinician.average_rating === 'number' 
+                      ? `${clinician.average_rating.toFixed(1)} (${clinician.rating_count || 0} reviews)`
+                      : `No ratings yet`
+                    }
                   </span>
                 </div>
                 
@@ -312,7 +302,7 @@ const ClinicianDetail = () => {
           </div>
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 };
 

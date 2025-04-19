@@ -19,6 +19,7 @@ class UserManager(BaseUserManager):
         user = self.create_user(email, name, password, user_type='Admin')
         user.is_staff = True
         user.is_superuser = True
+        user.is_email_verified = True  # Superusers are auto-verified
         user.save(using=self._db)
         return user
 
@@ -40,6 +41,7 @@ class Users(AbstractBaseUser, PermissionsMixin):
     )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    is_email_verified = models.BooleanField(default=False)  # New field for email verification
 
     objects = UserManager()
 

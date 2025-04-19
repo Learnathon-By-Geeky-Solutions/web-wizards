@@ -3,8 +3,12 @@ import io
 import tempfile
 import PyPDF2
 import shutil
-from typing import Tuple, Optional, BinaryIO
+from typing import Tuple, Optional, BinaryIO, Union, Callable
 from fastapi import UploadFile, HTTPException
+import inspect
+import logging
+
+logger = logging.getLogger(__name__)
 
 def is_valid_pdf(file_content: bytes) -> bool:
     """
@@ -82,23 +86,56 @@ def validate_pdf_file(upload_file: UploadFile) -> Tuple[str, bool]:
             raise HTTPException(status_code=400, detail=f"Failed to process PDF: {str(e)}")
 
 def safe_process_pdf(func):
-    """Decorator to safely process PDF files"""
-    async def wrapper(file: UploadFile, *args, **kwargs):
-        try:
-            # Validate the PDF and get temp path
-            temp_path, is_simple = validate_pdf_file(file)
+    """
+    Decorator to safely process PDF files or URLs that point to PDFs.
+    This handles both UploadFile objects and URLs as strings.
+    """
+    async def wrapper(*args, **kwargs):
+        # Get the first argument which should be either UploadFile or a request object with URL
+        if not args:
+            # No positional arguments, check if there's a file or URL in kwargs
+            file_arg = kwargs.get('file')
+            request_arg = kwargs.get('request')
+        else:
+            # Get first positional argument
+            file_arg = args[0]
+            request_arg = args[0] if not isinstance(args[0], UploadFile) else None
             
-            try:
-                # Call the original function with the temp path
-                return await func(file, *args, **kwargs)
-            finally:
-                # Clean up temporary file
+        temp_path = None
+        
+        try:
+            # Handle UploadFile case
+            if isinstance(file_arg, UploadFile):
+                # Validate the PDF and get temp path
+                temp_path, is_simple = validate_pdf_file(file_arg)
+                
+                # Now actually call the function
+                return await func(*args, **kwargs)
+            
+            # Handle URL case - this has already been handled in the endpoint itself
+            # so we just pass through the call with no additional processing
+            return await func(*args, **kwargs)
+            
+        except HTTPException:
+            # Re-raise HTTP exceptions
+            raise
+        except Exception as e:
+            # Log any other exceptions
+            logger.exception(f"Error in safe_process_pdf: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"An error occurred processing the PDF file: {str(e)}"
+            )
+        finally:
+            # Clean up temporary file if one was created
+            if temp_path:
                 try:
                     os.unlink(temp_path)
-                except:
-                    pass
-        finally:
-            # Always close the file
-            file.file.close()
+                except Exception as e:
+                    logger.warning(f"Failed to delete temporary file: {str(e)}")
             
+            # Close file if it's an UploadFile
+            if isinstance(file_arg, UploadFile):
+                file_arg.file.close()
+                
     return wrapper

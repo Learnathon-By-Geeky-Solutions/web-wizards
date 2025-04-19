@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProcessGoogleCallbackMutation } from '../store/api/oauthApi';
-import Spinner from '../components/ui/Spinner';
+import Spinner from '../components/common/Spinner';
+import { AuthContext } from '../context/authContext';
 
 /**
  * Component to handle Google OAuth callback
@@ -12,10 +13,17 @@ const GoogleCallback = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const [processGoogleCallback] = useProcessGoogleCallbackMutation();
+  const { loginWithGoogle } = useContext(AuthContext);
+  const codeProcessed = useRef(false); // Use ref to track if code has been processed
 
   useEffect(() => {
     const processCallback = async () => {
       try {
+        // Prevent double processing
+        if (codeProcessed.current) {
+          return;
+        }
+
         // Extract authorization code from URL
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
@@ -26,16 +34,29 @@ const GoogleCallback = () => {
           return;
         }
 
-        // Process the callback code with RTK Query
-        await processGoogleCallback(code).unwrap();
+        // Mark code as being processed
+        codeProcessed.current = true;
+
+        console.log("Processing Google OAuth callback...");
+
+        // Get the current redirect URI (needed for OAuth verification)
+        const redirectUri = `${window.location.origin}/google-callback`;
+        console.log("Using redirect URI:", redirectUri);
+
+        // Process the callback code using AuthContext
+        await loginWithGoogle({
+          code: code,
+          redirectUri: redirectUri
+        });
         
         setStatus('success');
         
         // Navigate to dashboard or intended destination
         setTimeout(() => {
           navigate('/dashboard', { replace: true });
-        }, 1000);
+        }, 1500);
       } catch (err) {
+        console.error("Google OAuth callback error:", err);
         setStatus('error');
         setError(err.data?.detail || err.message || 'Failed to process Google login');
         
@@ -47,8 +68,9 @@ const GoogleCallback = () => {
     };
 
     processCallback();
-  }, [processGoogleCallback, navigate]);
+  }, [navigate, loginWithGoogle]);
 
+  // Component rendering based on status
   if (status === 'processing') {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">

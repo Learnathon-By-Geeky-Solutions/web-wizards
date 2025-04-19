@@ -10,7 +10,7 @@ export const oauthApi = apiService.injectEndpoints({
     // Get Google OAuth URL
     getGoogleAuthUrl: builder.query({
       query: (redirectUri = window.location.origin + '/google-callback') => ({
-        url: `/api/users/google/login/?redirect_uri=${encodeURIComponent(redirectUri)}`,
+        url: `users/google/login/?redirect_uri=${encodeURIComponent(redirectUri)}`,
         method: 'GET',
       }),
     }),
@@ -18,7 +18,7 @@ export const oauthApi = apiService.injectEndpoints({
     // Initiate Google OAuth login process
     initiateGoogleLogin: builder.mutation({
       query: (redirectUri = window.location.origin + '/google-callback') => ({
-        url: `/api/users/google/login/?redirect_uri=${encodeURIComponent(redirectUri)}`,
+        url: `users/google/login/?redirect_uri=${encodeURIComponent(redirectUri)}`,
         method: 'GET',
       }),
       // Custom response handler for redirects
@@ -26,6 +26,7 @@ export const oauthApi = apiService.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           if (data.auth_url) {
+            // Redirect to Google's OAuth screen
             window.location.href = data.auth_url;
           }
         } catch (err) {
@@ -36,25 +37,44 @@ export const oauthApi = apiService.injectEndpoints({
     
     // Process Google OAuth callback
     processGoogleCallback: builder.mutation({
-      query: (code) => ({
-        url: '/api/users/google/callback/',
-        method: 'POST',
-        body: { code },
-        credentials: 'include', // Include cookies in requests
-      }),
-      // Handle successful login by securely storing tokens
+      query: (data) => {
+        // Ensure both code and redirect_uri are properly sent
+        const payload = {
+          code: data.code
+        };
+        
+        // Only include redirect_uri if it exists
+        if (data.redirect_uri) {
+          payload.redirect_uri = data.redirect_uri;
+        }
+        
+        return {
+          url: 'users/google/callback/',
+          method: 'POST',
+          body: payload,
+          credentials: 'include', // Include cookies in requests
+        };
+      },
+      
+      // Better error handling and state management
       async onQueryStarted(_, { queryFulfilled, dispatch }) {
         try {
           const { data } = await queryFulfilled;
+          
+          // Securely store tokens
           if (data.access) tokenService.setAccessToken(data.access);
           if (data.refresh) tokenService.setRefreshToken(data.refresh);
           
-          // Optionally dispatch user data if provided in response
+          // Update user state if user data is provided
           if (data.user) {
             dispatch({ type: 'user/setUser', payload: data.user });
           }
+          
+          console.log("Google OAuth callback processed successfully");
         } catch (err) {
-          console.error('Google login failed:', err);
+          console.error('Google login processing failed:', err);
+          // Make sure to clear any tokens on failure
+          tokenService.clearTokens();
         }
       },
     }),

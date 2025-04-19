@@ -9,7 +9,7 @@ const LogHealthIssueModal = ({ onClose, onSuccess }) => {
   const [createHealthIssue, { isLoading }] = useCreateHealthIssueMutation();
   
   const [formData, setFormData] = useState({
-    title: '',
+    name: '',
     description: '',
     start_date: new Date().toISOString().split('T')[0],
     start_time: new Date().toTimeString().slice(0, 5),
@@ -32,8 +32,8 @@ const LogHealthIssueModal = ({ onClose, onSuccess }) => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
     }
     
     if (!formData.start_date) {
@@ -84,22 +84,22 @@ const LogHealthIssueModal = ({ onClose, onSuccess }) => {
         
         <form onSubmit={handleSubmit} className="px-6 py-4">
           <div className="mb-4">
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-              Title <span className="text-red-500">*</span>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              id="title"
-              name="title"
-              value={formData.title}
+              id="name"
+              name="name"
+              value={formData.name}
               onChange={handleChange}
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                errors.title ? 'border-red-500' : 'border-gray-300'
+                errors.name ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="e.g., Lower Back Pain, Migraine, etc."
             />
-            {errors.title && (
-              <p className="mt-1 text-sm text-red-500">{errors.title}</p>
+            {errors.name && (
+              <p className="mt-1 text-sm text-red-500">{errors.name}</p>
             )}
           </div>
           

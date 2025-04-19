@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
+import MainLayout from '../layouts/MainLayout';
 import { 
-  fetchDiagnosticCenterById, 
-  fetchReviewsForDiagnosticCenter,
-  submitReview
-} from '../api/cliniciansApi';
+  useGetDiagnosticCenterByIdQuery,
+  useGetReviewsForDiagnosticCenterQuery,
+  useSubmitReviewMutation
+} from '../store/api/cliniciansApi';
 import ReviewList from '../components/Clinicians/ReviewList';
 import ReviewForm from '../components/Clinicians/ReviewForm';
 import Spinner from '../components/common/Spinner';
@@ -25,36 +25,21 @@ import hospitalPlaceholder from '../assets/hospital-placeholder.png';
 
 const DiagnosticCenterDetail = () => {
   const { id } = useParams();
-  const [center, setCenter] = useState(null);
-  const [reviews, setReviews] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
-
-  // Fetch diagnostic center details and reviews
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch diagnostic center details
-        const centerData = await fetchDiagnosticCenterById(id);
-        setCenter(centerData);
-        
-        // Fetch reviews for this diagnostic center
-        const reviewsData = await fetchReviewsForDiagnosticCenter(id);
-        setReviews(reviewsData);
-        
-        setError(null);
-      } catch (err) {
-        console.error('Error loading diagnostic center data:', err);
-        setError('Failed to load diagnostic center details. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadData();
-  }, [id]);
+  
+  // Use RTK Query hooks instead of direct API calls
+  const { 
+    data: center, 
+    isLoading: isCenterLoading, 
+    error: centerError 
+  } = useGetDiagnosticCenterByIdQuery(id);
+  
+  const { 
+    data: reviews = [], 
+    isLoading: isReviewsLoading 
+  } = useGetReviewsForDiagnosticCenterQuery(id);
+  
+  const [submitReviewMutation, { isLoading: isSubmittingReview }] = useSubmitReviewMutation();
 
   // Handle submitting a new review
   const handleSubmitReview = async (reviewData) => {
@@ -65,11 +50,8 @@ const DiagnosticCenterDetail = () => {
         diagnostic_center: id
       };
       
-      // Submit the review
-      const newReview = await submitReview(reviewToSubmit);
-      
-      // Update the reviews list
-      setReviews([newReview, ...reviews]);
+      // Submit the review using the RTK Query mutation
+      await submitReviewMutation(reviewToSubmit).unwrap();
       
       // Close the review form
       setShowReviewForm(false);
@@ -100,22 +82,23 @@ const DiagnosticCenterDetail = () => {
     return stars;
   };
 
+  const isLoading = isCenterLoading || isReviewsLoading;
+  const error = centerError ? centerError.data?.detail || 'Failed to load diagnostic center details' : null;
+
   if (isLoading) {
     return (
-      <div className="flex min-h-screen bg-gray-100">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-6 flex justify-center items-center">
+      <MainLayout>
+        <div className="flex-1 p-6 flex justify-center items-center">
           <Spinner />
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   if (error || !center) {
     return (
-      <div className="flex min-h-screen bg-gray-100">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-6">
+      <MainLayout>
+        <div className="flex-1 p-6">
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error || 'Diagnostic center not found'}
           </div>
@@ -123,14 +106,13 @@ const DiagnosticCenterDetail = () => {
             <FaArrowLeft className="mr-2" /> Back to Diagnostic Centers
           </Link>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      <div className="flex-1 ml-64 p-6">
+    <MainLayout>
+      <div className="flex-1 p-6">
         {/* Back navigation */}
         <Link to="/clinicians" className="text-teal-500 hover:underline flex items-center mb-4">
           <FaArrowLeft className="mr-2" /> Back to Diagnostic Centers
@@ -181,10 +163,10 @@ const DiagnosticCenterDetail = () => {
                 {/* Rating */}
                 <div className="flex items-center mt-2">
                   <div className="flex mr-2">
-                    {renderRatingStars(center.average_rating)}
+                    {renderRatingStars(center.average_rating || 0)}
                   </div>
                   <span className="text-sm text-gray-600">
-                    {center.average_rating.toFixed(1)} ({center.rating_count} reviews)
+                    {typeof center.average_rating === 'number' ? center.average_rating.toFixed(1) : '0.0'} ({center.rating_count || 0} reviews)
                   </span>
                 </div>
                 
@@ -308,7 +290,7 @@ const DiagnosticCenterDetail = () => {
           </div>
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 };
 

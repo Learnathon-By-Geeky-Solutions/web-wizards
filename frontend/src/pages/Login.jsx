@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { FcGoogle } from 'react-icons/fc';
-import { useLoginMutation } from '../store/api/authApi';
+import { useLoginMutation, useResendVerificationEmailMutation } from '../store/api/authApi';
 import { useInitiateGoogleLoginMutation } from '../store/api/oauthApi';
 import { AuthContext } from '../context/authContext';
 
@@ -16,16 +16,22 @@ const Login = () => {
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState('');
   const { setUser, setIsAuthenticated } = useContext(AuthContext);
+  const [emailVerificationRequired, setEmailVerificationRequired] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
   
   // RTK Query mutation hooks
   const [login, { isLoading: isLoginLoading }] = useLoginMutation();
   const [initiateGoogleLogin, { isLoading: isGoogleLoading }] = useInitiateGoogleLoginMutation();
+  const [resendVerification, { isLoading: isResending, isSuccess: isResendSuccess }] = useResendVerificationEmailMutation();
   
   // Combined loading state
   const isLoading = isLoginLoading || isGoogleLoading;
 
   const onSubmit = async (data) => {
     try {
+      setErrorMessage('');
+      setEmailVerificationRequired(false);
+      
       // Use RTK Query login mutation instead of authService
       const result = await login(data).unwrap();
       
@@ -39,7 +45,14 @@ const Login = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error('Login failed:', error);
-      setErrorMessage(error.data?.detail || error.message || 'Login failed. Please try again.');
+      
+      // Check if it's an unverified email error
+      if (error?.data?.email_verified === false) {
+        setEmailVerificationRequired(true);
+        setUnverifiedEmail(error?.data?.email || data.email);
+      } else {
+        setErrorMessage(error.data?.detail || error.message || 'Login failed. Please try again.');
+      }
     }
   };
 
@@ -53,6 +66,63 @@ const Login = () => {
       setErrorMessage('Failed to initiate Google login. Please try again.');
     });
   };
+
+  // Handle resend verification email
+  const handleResendVerification = async () => {
+    try {
+      // Remove frontend_url as it's now handled by backend environment variables
+      await resendVerification({
+        email: unverifiedEmail
+      });
+    } catch (error) {
+      console.error('Error resending verification:', error);
+    }
+  };
+
+  // Show verification required screen
+  if (emailVerificationRequired) {
+    return (
+      <div className="min-h-screen bg-blue-100 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center">
+          <div className="bg-yellow-100 text-yellow-800 p-4 rounded-lg mb-6">
+            <svg className="w-16 h-16 text-yellow-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            <h2 className="text-2xl font-bold mb-2">Email Not Verified</h2>
+            <p>You need to verify your email address ({unverifiedEmail}) before logging in.</p>
+          </div>
+          
+          {isResendSuccess ? (
+            <div className="bg-green-100 text-green-800 p-4 rounded-lg mb-6">
+              <p>Verification email has been sent. Please check your inbox and spam folder.</p>
+            </div>
+          ) : (
+            <div className="mb-6">
+              <p className="mb-4">Didn't receive a verification email?</p>
+              <button
+                onClick={handleResendVerification}
+                disabled={isResending}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
+              >
+                {isResending ? 'Sending...' : 'Resend Verification Email'}
+              </button>
+            </div>
+          )}
+          
+          <Link
+            to="/login"
+            className="mt-4 text-blue-600 hover:text-blue-800 block"
+            onClick={() => {
+              setEmailVerificationRequired(false);
+              setUnverifiedEmail('');
+            }}
+          >
+            Return to login
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-green-100 p-4">

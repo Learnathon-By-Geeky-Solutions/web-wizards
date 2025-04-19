@@ -114,8 +114,9 @@ class TokenService {
 
   /**
    * Clear all stored tokens
+   * @param {boolean} isPageRefresh - Whether this is being called during a page refresh
    */
-  clearTokens() {
+  clearTokens(isPageRefresh = false) {
     // Clear in-memory token
     inMemoryToken = null;
     
@@ -130,10 +131,12 @@ class TokenService {
     // Clear cookie if exists
     Cookies.remove('refresh_token');
     
-    // Make API call to clear HttpOnly cookie
-    this.clearHttpOnlyCookie().catch(err => 
-      console.error('Failed to clear HttpOnly cookie:', err)
-    );
+    // Make API call to clear HttpOnly cookie - but skip during page refresh
+    if (!isPageRefresh) {
+      this.clearHttpOnlyCookie().catch(err => 
+        console.error('Failed to clear HttpOnly cookie:', err)
+      );
+    }
   }
 
   /**

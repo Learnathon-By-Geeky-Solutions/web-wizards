@@ -37,6 +37,26 @@ export const authApi = apiService.injectEndpoints({
       }),
     }),
     
+    verifyEmail: builder.query({
+      query: (token) => `users/verify-email/${token}/`,
+    }),
+    
+    resendVerificationEmail: builder.mutation({
+      query: (emailData) => ({
+        url: 'users/resend-verification/',
+        method: 'POST',
+        body: emailData,
+      }),
+    }),
+    
+    checkEmailExists: builder.mutation({
+      query: (email) => ({
+        url: 'users/check-email/',
+        method: 'POST',
+        body: { email },
+      }),
+    }),
+    
     getProfile: builder.query({
       query: () => 'users/profile/',  // Add leading slash for absolute path from baseUrl
       providesTags: ['User'],
@@ -81,22 +101,28 @@ export const authApi = apiService.injectEndpoints({
       }),
     }),
     
-    googleLogin: builder.mutation({
-      query: () => ({
-        url: '/auth/google/callback/', // Add leading slash for absolute path from baseUrl
+    resetPassword: builder.mutation({
+      query: (credentials) => ({
+        url: 'users/reset-password/',
         method: 'POST',
-        credentials: 'include',
+        body: credentials,
       }),
     }),
+    
+    // googleLogin mutation removed as it is now handled in oauthApi.js
   }),
 });
 
 export const {
   useLoginMutation,
   useRegisterMutation,
+  useVerifyEmailQuery,
+  useResendVerificationEmailMutation,
+  useCheckEmailExistsMutation,
   useGetProfileQuery,
   useUpdateProfileMutation,
   useLogoutMutation,
   useForgotPasswordMutation,
-  useGoogleLoginMutation,
+  useResetPasswordMutation,
+  // useGoogleLoginMutation removed from exports
 } = authApi;

@@ -57,7 +57,8 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (error) {
           console.error('Error initializing auth:', error);
-          tokenService.clearTokens();
+          // Use isPageRefresh=true to avoid clearing HttpOnly cookie during page refresh
+          tokenService.clearTokens(true);
           setIsAuthenticated(false);
         }
       }
@@ -104,28 +105,44 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const loginWithGoogle = async (code) => {
+  const loginWithGoogle = async (params) => {
     try {
-      // Use RTK Query mutation for Google login
-      const { data: response } = await processGoogleCallback(code).unwrap();
+      // Process the OAuth callback with the code and redirect URI
+      // Handle both string code and object with code & redirectUri
+      const code = typeof params === 'string' ? params : params.code;
+      const redirectUri = typeof params === 'string' ? undefined : params.redirectUri;
+      
+      console.log("AuthContext: Processing Google login with redirectUri:", redirectUri);
+      
+      // Call the API with both code and redirect URI - only once
+      const response = await processGoogleCallback({
+        code,
+        redirect_uri: redirectUri
+      }).unwrap();
+      
+      console.log("Google login successful, processing user data");
       
       // Store tokens securely
-      if (response.access && response.refresh) {
-        tokenService.setAccessToken(response.access);
-        tokenService.setRefreshToken(response.refresh);
-      }
+      if (response.access) tokenService.setAccessToken(response.access);
+      if (response.refresh) tokenService.setRefreshToken(response.refresh);
       
       // Set user information directly from the response
       if (response.user) {
-        setUserState(response.user);
-        dispatch(setReduxUser(response.user));
+        const userData = {
+          ...response.user,
+          // Ensure profile image is properly set
+          image: response.user.image || null
+        };
+        
+        setUserState(userData);
+        dispatch(setReduxUser(userData));
         setIsAuthenticated(true);
         
         // Set user information in Sentry
         setSentryUser({
-          id: response.user.id,
-          email: response.user.email,
-          username: response.user.name,
+          id: userData.id,
+          email: userData.email,
+          username: userData.name,
         });
         
         // Initialize the token refresh mechanism
@@ -135,6 +152,7 @@ export const AuthProvider = ({ children }) => {
       return response;
     } catch (error) {
       console.error('Google login error:', error);
+      setIsAuthenticated(false);
       throw error;
     }
   };

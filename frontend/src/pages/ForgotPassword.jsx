@@ -20,11 +20,11 @@ const ForgotPassword = () => {
   const onSubmit = async (data) => {
     try {
       const response = await forgotPassword(data.email).unwrap();
-      setMessage(response.message || 'Check your email for reset instructions.');
+      setMessage(response.message || 'If an account with this email exists, a password reset link has been sent.');
       setErrorMessage('');
-      setTimeout(() => navigate('/login'), 3000);
+      setTimeout(() => navigate('/login'), 5000);
     } catch (error) {
-      setErrorMessage(error.data?.detail || error.message || 'Something went wrong. Please try again.');
+      setErrorMessage(error.data?.error || error.message || 'Something went wrong. Please try again.');
       setMessage('');
     }
   };
@@ -33,7 +33,7 @@ const ForgotPassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-green-100 p-4">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-sm md:max-w-md lg:max-w-lg">
         <h2 className="text-2xl font-bold mb-6 text-center font-mono">Forgot Password</h2>
-        <p className="text-gray-600 text-center mb-4">Enter your email, and we’ll send you a link to reset your password.</p>
+        <p className="text-gray-600 text-center mb-4">Enter your email, and we'll send you a link to reset your password.</p>
         
         <form onSubmit={handleSubmit(onSubmit)}>
           {/* Email Input */}
@@ -64,9 +64,10 @@ const ForgotPassword = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition duration-300"
+            disabled={isLoading}
+            className={`w-full ${isLoading ? 'bg-blue-300' : 'bg-blue-500 hover:bg-blue-600'} text-white p-3 rounded-lg transition duration-300`}
           >
-            Send Reset Link
+            {isLoading ? 'Sending...' : 'Send Reset Link'}
           </button>
         </form>
 

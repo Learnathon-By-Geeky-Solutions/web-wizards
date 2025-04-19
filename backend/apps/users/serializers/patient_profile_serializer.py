@@ -10,6 +10,11 @@ class PatientProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = PatientProfile
         fields = '__all__'
+        extra_kwargs = {
+            'address': {'required': False},
+            'blood_group': {'required': False},
+            'blood_pressure': {'required': False}
+        }
         
     def to_representation(self, instance):
         representation = super().to_representation(instance)

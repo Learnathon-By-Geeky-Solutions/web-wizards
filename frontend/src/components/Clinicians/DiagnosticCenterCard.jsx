@@ -46,7 +46,7 @@ const DiagnosticCenterCard = ({ center, onViewDetails }) => {
           <div className="flex items-start">
             <FaHospital className="mt-1 mr-2 text-blue-500" />
             <div className="text-sm text-gray-600">
-              {center.services?.join(', ') || 'Laboratory Services'}
+              {Array.isArray(center.services) ? center.services.join(', ') : 'Laboratory Services'}
             </div>
           </div>
           

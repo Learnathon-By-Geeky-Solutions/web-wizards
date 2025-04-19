@@ -13,10 +13,15 @@ pdf2image==1.17.0
 pillow==11.1.0
 pydantic==2.10.6
 pydantic_core==2.27.2
+pydantic_settings==2.0.3
+PyPDF2
+pytest
 pytesseract==0.3.13
+python-multipart
 requests==2.32.3
 sniffio==1.3.1
 starlette==0.45.3
 typing_extensions==4.12.2
 urllib3==2.3.0
 uvicorn==0.34.0
+openai==1.2.0  # Adding OpenAI package for AI model integration

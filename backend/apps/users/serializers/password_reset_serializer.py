@@ -25,12 +25,13 @@ class ResetPasswordSerializer(serializers.Serializer):
     """
     token = serializers.CharField()
     password = serializers.CharField(min_length=8, write_only=True)
-    confirm_password = serializers.CharField(min_length=8, write_only=True)
+    confirm_password = serializers.CharField(min_length=8, write_only=True, required=False)
 
     def validate(self, data):
         """
-        Check that the passwords match
+        Check that the passwords match if confirm_password was provided
         """
-        if data['password'] != data['confirm_password']:
+        # Only validate matching passwords if confirm_password is included in request
+        if 'confirm_password' in data and data['password'] != data['confirm_password']:
             raise serializers.ValidationError({"error": "Password fields didn't match."})
         return data

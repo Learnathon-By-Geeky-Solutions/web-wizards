@@ -18,6 +18,14 @@ class LoginView(generics.GenericAPIView):
         user = Users.objects.filter(email=email).first()
 
         if user and check_password(password, user.password):
+            # Check if email is verified
+            if not user.is_email_verified:
+                return Response({
+                    "detail": "Please verify your email before logging in.",
+                    "email_verified": False,
+                    "email": user.email
+                }, status=status.HTTP_401_UNAUTHORIZED)
+                
             refresh = RefreshToken.for_user(user)
             return Response({
                 "user": UserSerializer(user).data,
