@@ -13,7 +13,6 @@ const Register = () => {
   
   const navigate = useNavigate();
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
 
   const onSubmit = async (data) => {
     console.log(data);
@@ -23,7 +22,6 @@ const Register = () => {
       navigate('/login');
     } catch (error) {
       console.error('Registration failed:', error);
-      setErrorMessage(error.message);
     }
   };
 
@@ -37,8 +35,9 @@ const Register = () => {
         <form onSubmit={handleSubmit(onSubmit)}>
           {/* Full Name */}
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Full Name</label>
+            <label htmlFor="fullName" className="block text-sm font-medium mb-2">Full Name</label>
             <input
+              id="fullName"
               type="text"
               {...register('fullName', { required: 'Full Name is required' })}
               className="w-full px-3 py-2 border rounded-lg"
@@ -51,8 +50,9 @@ const Register = () => {
 
           {/* Email */}
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">E-mail</label>
+            <label htmlFor="email" className="block text-sm font-medium mb-2">E-mail</label>
             <input
+              id="email"
               type="email"
               {...register('email', {
                 required: 'Email is required',
@@ -71,13 +71,14 @@ const Register = () => {
 
           {/* Phone */}
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Phone</label>
+            <label htmlFor="phone" className="block text-sm font-medium mb-2">Phone</label>
             <input
+              id="phone"
               type="tel"
               {...register('phone', {
                 required: 'Phone is required',
                 pattern: {
-                  value: /^[0-9]{10}$/,
+                  value: /^\d{10}$/,
                   message: 'Phone number must be 10 digits',
                 },
               })}
@@ -91,8 +92,9 @@ const Register = () => {
 
           {/* Password */}
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Password</label>
+            <label htmlFor="password" className="block text-sm font-medium mb-2">Password</label>
             <input
+              id="password"
               type="password"
               {...register('password', {
                 required: 'Password is required',
@@ -134,8 +136,9 @@ const Register = () => {
 
           {/* Confirm Password */}
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Confirm Password</label>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">Confirm Password</label>
             <input
+              id="confirmPassword"
               type="password"
               {...register('confirmPassword', {
                 required: 'Confirm Password is required',
@@ -152,8 +155,9 @@ const Register = () => {
 
           {/* Gender */}
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Gender</label>
+            <label htmlFor="gender" className="block text-sm font-medium mb-2">Gender</label>
             <select
+              id="gender"
               {...register('Gender', { required: 'Gender is required' })}
               className="w-full px-3 py-2 border rounded-lg"
               aria-label="Gender"
@@ -170,8 +174,9 @@ const Register = () => {
 
           {/* Date of Birth */}
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Date of Birth</label>
+            <label htmlFor="dateOfBirth" className="block text-sm font-medium mb-2">Date of Birth</label>
             <input
+              id="dateOfBirth"
               type="date"
               {...register('dateOfBirth', { required: 'Date of Birth is required' })}
               className="w-full px-3 py-2 border rounded-lg"
@@ -184,8 +189,9 @@ const Register = () => {
 
           {/* Address */}
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Address</label>
+            <label htmlFor="address" className="block text-sm font-medium mb-2">Address</label>
             <input
+              id="address"
               type="text"
               {...register('address', { required: 'Address is required' })}
               className="w-full px-3 py-2 border rounded-lg"
