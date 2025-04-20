@@ -1,18 +1,10 @@
-from pydantic import BaseModel, HttpUrl, Field, AnyHttpUrl
+from pydantic import BaseModel, Field, AnyHttpUrl
 from typing import Dict, List, Optional, Any
 from datetime import datetime
-
-class ProcessURLRequest(BaseModel):
-    """Request model for processing a PDF from URL"""
-    pdf_url: HttpUrl = Field(..., description="URL of the PDF to process")
 
 class ProcessCloudinaryURLRequest(BaseModel):
     """Request model for processing a document (PDF or image) from Cloudinary URL"""
     document_url: AnyHttpUrl = Field(..., description="Cloudinary URL of the document to process")
-
-class ImageURLRequest(BaseModel):
-    """Request model for processing an image from URL"""
-    image_url: HttpUrl = Field(..., description="URL of the image to process")
 
 class TestParameter(BaseModel):
     """Model for a single test parameter"""

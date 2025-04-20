@@ -109,12 +109,20 @@ class DocumentViewSet(viewsets.ModelViewSet):
             
             # Upload to Cloudinary with document-specific public_id
             public_id = f"document_{document.id}"
+            
+            # Determine appropriate resource_type based on file extension
+            file_extension = os.path.splitext(file_obj.name)[1].lower()
+            if file_extension == '.pdf':
+                resource_type = "raw"  # Use "raw" for PDFs
+            else:
+                resource_type = "auto"  # Use "auto" for other files
+                
             upload_result = cloudinary.uploader.upload(
                 file_obj,
                 folder="medical_documents", 
                 public_id=public_id,
                 overwrite=True,
-                resource_type="auto"  # Explicitly set resource_type to auto for handling different file types
+                resource_type=resource_type
             )
             
             # Update the document with the new file URL

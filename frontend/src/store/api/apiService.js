@@ -1,13 +1,25 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { tokenService } from '../../services/tokenService';
 
+// List of endpoints that don't require authentication
+const publicEndpoints = [
+  'users/register',
+  'users/login',
+  'users/auth/verify-email',
+  'users/auth/check-email',
+  'users/auth/forgot-password',
+  'users/auth/reset-password',
+  'token/'
+];
+
 const baseQuery = fetchBaseQuery({
   baseUrl: 'http://localhost:8000/api/',
   prepareHeaders: (headers) => {
+    // Get the access token from the token service
     const token = tokenService.getAccessToken();
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
     return headers;
   },
 });

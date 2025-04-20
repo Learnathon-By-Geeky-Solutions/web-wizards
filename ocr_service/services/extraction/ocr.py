@@ -4,19 +4,18 @@ import requests
 from io import BytesIO
 import logging
 import os
-import tempfile
 import pdf2image
-import json
 import re
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, Union
 
-from utils.image.preprocessing import preprocess_image
-from utils.url_handler import is_url_pdf, get_image_from_url, get_pdf_from_url
-from utils.ai_processor import process_text_with_ai
+# Import improved functionality from services.ocr
+from services.ocr import preprocess_image, extract_text_from_url as ocr_extract_text_from_url
+from utils.url_handler import is_url_pdf, get_pdf_from_url
 from core.config import settings
 
 logger = logging.getLogger(__name__)
+
 
 async def process_image(image: Image.Image) -> str:
     """
@@ -29,143 +28,94 @@ async def process_image(image: Image.Image) -> str:
         Extracted text
     """
     try:
-        # Preprocess the image
+        # Use the improved preprocessing from services.ocr
         preprocessed_image = preprocess_image(image)
         
-        # Configure OCR
-        custom_config = r'--oem 3 --psm 6'
+        # Configure OCR with the same settings as in services.ocr
+        custom_config = r'--oem 3 --psm 6'  # Experiment with `psm` values
         
         # Extract text
-        text = pytesseract.image_to_string(preprocessed_image, config=custom_config)
+        text = pytesseract.image_to_string(
+            preprocessed_image,
+            config=custom_config
+        )
         return text
     except Exception as e:
-        logger.exception(f"Error in OCR processing: {str(e)}")
+        logger.exception("Error in OCR processing: %s", str(e))
         return ""
 
-async def extract_text_from_url(url: str) -> Union[str, Dict[str, Any]]:
+
+async def extract_text_from_url(url: str) -> Union[str, Dict[str, Any]]: 
     """
-    Extract text from a URL (image or PDF)
+    Extract text from a URL (image or PDF) - optimized for Cloudinary URLs
     
     Args:
-        url: URL of the image or PDF
+        url: Cloudinary URL of the image or PDF
     
     Returns:
         Extracted text or structured data if PDF
     """
     try:
+        # Use the enhanced OCR functionality from services.ocr
+        extracted_text = ocr_extract_text_from_url(url)
+        
+        if extracted_text:
+            logger.info("Successfully extracted text using enhanced OCR")
+            return extracted_text
+        
+        # Fall back to the previous implementation if the enhanced method fails
+        logger.warning("Enhanced OCR failed, falling back to original implementation")
+        
         # Check if URL points to a PDF
         if is_url_pdf(url):
             # Process as PDF
-            return await extract_text_from_pdf_url(url)
+            temp_path = get_pdf_from_url(url)
+            
+            try:
+                # Convert PDF to images
+                images = pdf2image.convert_from_path(temp_path)
+                
+                # Extract text from each page
+                all_text = ""
+                for image in images:
+                    page_text = await process_image(image)
+                    all_text += page_text + "\n\n"
+                
+                return all_text
+            finally:
+                # Clean up temporary file
+                try:
+                    os.unlink(temp_path)
+                except Exception as e:
+                    logger.warning(
+                        "Failed to delete temporary PDF file: %s",
+                        str(e)
+                    )
         else:
-            # Process as image
-            image = get_image_from_url(url)
-            return await process_image(image)
+            # Direct image processing 
+            try:
+                response = requests.get(url, timeout=30)
+                if response.status_code != 200:
+                    logger.error(
+                        "Failed to fetch image from URL: %s, status code: %s",
+                        url,
+                        response.status_code
+                    )
+                    return None
+                    
+                image = Image.open(BytesIO(response.content))
+                return await process_image(image)
+            except Exception as e:
+                logger.exception(
+                    "Error processing image URL: %s, error: %s",
+                    url,
+                    str(e)
+                )
+                return None
     except Exception as e:
-        logger.exception(f"Error processing content from URL: {str(e)}")
+        logger.exception("Error processing content from URL: %s", str(e))
         return None
 
-async def extract_text_from_pdf_url(url: str) -> Dict[str, Any]:
-    """
-    Extract text from a PDF URL
-    
-    Args:
-        url: URL of the PDF
-    
-    Returns:
-        Dictionary containing structured medical test data
-    """
-    try:
-        # Download PDF to temporary file
-        temp_path = get_pdf_from_url(url)
-        
-        try:
-            # Process the PDF
-            return await extract_text_from_pdf(temp_path)
-        finally:
-            # Clean up temporary file
-            try:
-                os.unlink(temp_path)
-            except Exception as e:
-                logger.warning(f"Failed to delete temporary PDF file: {str(e)}")
-    except Exception as e:
-        logger.exception(f"Error extracting text from PDF URL: {str(e)}")
-        raise
-
-async def extract_text_from_pdf(pdf_path: str) -> Dict[str, Any]:
-    """
-    Extract text from a PDF and structure it into medical test data
-    
-    Args:
-        pdf_path: Path to the PDF file
-    
-    Returns:
-        Dictionary containing structured medical test data
-    """
-    try:
-        # Convert PDF to images
-        images = pdf2image.convert_from_path(pdf_path)
-        
-        # Extract text from each page
-        all_text = ""
-        for image in images:
-            page_text = await process_image(image)
-            all_text += page_text + "\n\n"
-        
-        # Process with AI if configured
-        if settings.USE_AI_PROCESSING:
-            structured_data = process_text_with_ai(all_text)
-        else:
-            # Structure the extracted text using regex-based approach
-            structured_data = await structure_medical_data(all_text)
-            
-        return structured_data
-        
-    except Exception as e:
-        logger.exception(f"Error extracting text from PDF: {str(e)}")
-        raise
-
-async def extract_text_from_document(document: Union[str, bytes, Image.Image]) -> Dict[str, Any]:
-    """
-    Extract text from any document type (URL, bytes, or image)
-    
-    Args:
-        document: Document to process (URL string, bytes, or PIL Image)
-        
-    Returns:
-        Extracted text or structured data
-    """
-    try:
-        if isinstance(document, str) and (document.startswith('http://') or document.startswith('https://')):
-            # Process as URL
-            return await extract_text_from_url(document)
-        elif isinstance(document, bytes):
-            # Process as bytes (likely PDF or image)
-            try:
-                # Try to open as image first
-                image = Image.open(BytesIO(document))
-                return await process_image(image)
-            except Exception:
-                # Not a valid image, try as PDF
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
-                    temp_file.write(document)
-                    temp_path = temp_file.name
-                
-                try:
-                    return await extract_text_from_pdf(temp_path)
-                finally:
-                    try:
-                        os.unlink(temp_path)
-                    except:
-                        pass
-        elif isinstance(document, Image.Image):
-            # Process as image
-            return await process_image(document)
-        else:
-            raise ValueError("Unsupported document type")
-    except Exception as e:
-        logger.exception(f"Error extracting text from document: {str(e)}")
-        raise
 
 async def structure_medical_data(text: str) -> Dict[str, Any]:
     """
@@ -177,8 +127,8 @@ async def structure_medical_data(text: str) -> Dict[str, Any]:
     Returns:
         Dictionary with structured medical test data
     """
-    # Extract test date (simple regex pattern)
-    date_pattern = r'(?:Date|TEST DATE|Report Date)[:\s]+(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s+\w+\s+\d{2,4})'
+    # Extract test date (simplifying regex pattern)
+    date_pattern = r'(?:Date|TEST DATE|Report Date)[:\s]+(\d{1,2}[/-]\d{1,2}[/-]\d{4})'
     date_match = re.search(date_pattern, text, re.IGNORECASE)
     test_date = None
     
@@ -186,7 +136,7 @@ async def structure_medical_data(text: str) -> Dict[str, Any]:
         date_str = date_match.group(1)
         try:
             # Try multiple date formats
-            for fmt in ['%d/%m/%Y', '%d-%m-%Y', '%d %B %Y', '%d %b %Y']:
+            for fmt in ['%d/%m/%Y', '%d-%m-%Y']:
                 try:
                     test_date = datetime.strptime(date_str, fmt)
                     break
@@ -195,8 +145,8 @@ async def structure_medical_data(text: str) -> Dict[str, Any]:
         except Exception:
             test_date = None
     
-    # Extract lab name
-    lab_pattern = r'(?:Laboratory|Lab|LABORATORY)[:\s]+([A-Za-z0-9\s]+)'
+    # Extract lab name with simplified pattern
+    lab_pattern = r'(?:Laboratory|Lab)[:\s]+([A-Za-z0-9\s]+)'
     lab_match = re.search(lab_pattern, text, re.IGNORECASE)
     lab_name = lab_match.group(1).strip() if lab_match else "Unknown Lab"
     
@@ -229,41 +179,108 @@ async def structure_medical_data(text: str) -> Dict[str, Any]:
         # Extract CBC parameters
         if test_code == "CBC":
             # Common CBC parameters
-            cbc_params = {
-                "wbc": extract_parameter(text, r'(?:WBC|White\s+Blood\s+Cells)[:\s]+([\d.]+)'),
-                "rbc": extract_parameter(text, r'(?:RBC|Red\s+Blood\s+Cells)[:\s]+([\d.]+)'),
-                "hgb": extract_parameter(text, r'(?:HGB|Hemoglobin)[:\s]+([\d.]+)'),
-                "hct": extract_parameter(text, r'(?:HCT|Hematocrit)[:\s]+([\d.]+)'),
-                "plt": extract_parameter(text, r'(?:PLT|Platelets)[:\s]+([\d.]+)')
+            cbc_params = extract_cbc_parameters(text)
+            test_data["parameters"] = {
+                k: v for k, v in cbc_params.items() if v
             }
-            test_data["parameters"] = {k: v for k, v in cbc_params.items() if v}
         
         # Extract URE parameters
         elif test_code == "URE":
             # Common URE parameters
-            ure_params = {
-                "urea": extract_parameter(text, r'(?:Urea|BUN)[:\s]+([\d.]+)'),
-                "creatinine": extract_parameter(text, r'(?:Creatinine)[:\s]+([\d.]+)'),
-                "sodium": extract_parameter(text, r'(?:Sodium|Na)[:\s]+([\d.]+)'),
-                "potassium": extract_parameter(text, r'(?:Potassium|K)[:\s]+([\d.]+)'),
-                "chloride": extract_parameter(text, r'(?:Chloride|Cl)[:\s]+([\d.]+)')
+            ure_params = extract_ure_parameters(text)
+            test_data["parameters"] = {
+                k: v for k, v in ure_params.items() if v
             }
-            test_data["parameters"] = {k: v for k, v in ure_params.items() if v}
         
         # If parameters were found, add to tests list
         if test_data["parameters"]:
             response["tests"].append(test_data)
     
-    # For backward compatibility, add specific CBC and URE data if present
-    cbc_data = next((test["parameters"] for test in response["tests"] if test["test_type"] == "CBC"), None)
-    if cbc_data:
-        response["cbc"] = cbc_data
+    # For backward compatibility, add specific CBC and URE data
+    cbc_test = next(
+        (test for test in response["tests"] if test["test_type"] == "CBC"),
+        None
+    )
+    if cbc_test:
+        response["cbc"] = cbc_test["parameters"]
         
-    ure_data = next((test["parameters"] for test in response["tests"] if test["test_type"] == "URE"), None)
-    if ure_data:
-        response["ure"] = ure_data
+    ure_test = next(
+        (test for test in response["tests"] if test["test_type"] == "URE"),
+        None
+    )
+    if ure_test:
+        response["ure"] = ure_test["parameters"]
     
     return response
+
+
+def extract_cbc_parameters(text: str) -> Dict[str, Any]:
+    """
+    Extract common CBC parameters from text
+    
+    Args:
+        text: Raw text to extract parameters from
+        
+    Returns:
+        Dictionary of CBC parameters
+    """
+    return {
+        "wbc": extract_parameter(
+            text,
+            r'(?:WBC|White\s+Blood\s+Cells)[:\s]+([\d.]+)'
+        ),
+        "rbc": extract_parameter(
+            text,
+            r'(?:RBC|Red\s+Blood\s+Cells)[:\s]+([\d.]+)'
+        ),
+        "hgb": extract_parameter(
+            text,
+            r'(?:HGB|Hemoglobin)[:\s]+([\d.]+)'
+        ),
+        "hct": extract_parameter(
+            text,
+            r'(?:HCT|Hematocrit)[:\s]+([\d.]+)'
+        ),
+        "plt": extract_parameter(
+            text,
+            r'(?:PLT|Platelets)[:\s]+([\d.]+)'
+        )
+    }
+
+
+def extract_ure_parameters(text: str) -> Dict[str, Any]:
+    """
+    Extract common URE parameters from text
+    
+    Args:
+        text: Raw text to extract parameters from
+        
+    Returns:
+        Dictionary of URE parameters
+    """
+    return {
+        "urea": extract_parameter(
+            text,
+            r'(?:Urea|BUN)[:\s]+([\d.]+)'
+        ),
+        "creatinine": extract_parameter(
+            text,
+            r'(?:Creatinine)[:\s]+([\d.]+)'
+        ),
+        "sodium": extract_parameter(
+            text,
+            r'(?:Sodium|Na)[:\s]+([\d.]+)'
+        ),
+        "potassium": extract_parameter(
+            text,
+            r'(?:Potassium|K)[:\s]+([\d.]+)'
+        ),
+        "chloride": extract_parameter(
+            text,
+            r'(?:Chloride|Cl)[:\s]+([\d.]+)'
+        )
+    }
+
 
 def extract_parameter(text: str, pattern: str) -> Dict[str, Any]:
     """
