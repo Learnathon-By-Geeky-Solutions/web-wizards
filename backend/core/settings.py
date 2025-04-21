@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'api',
     'apps.users',
+    'apps.clinicians',
 ]
 
 MIDDLEWARE = [
