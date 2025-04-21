@@ -1,55 +1,26 @@
-import React, { useState} from 'react';
-import Sidebar from '../Sidebar';
+import React from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import {
+  updateSetting,
+  resetSettings,
+  setMessage,
+  clearMessage
+} from '../../store/slices/settingsSlice';
 import UserProfile from '../Navbar/UserProfile';
 import SelectField from './SelectField';
 import TimeField from './TimeField';
 
 const Setting = () => {
-
-  // Combined state object
-  const [settings, setSettings] = useState({
-    fullName: 'Faysal Ahammed',
-    isLoading: false,
-    isDropdownOpen: false,
-    message: '',
-    unitOfMeasurement: 'metric',
-    cholesterolUnit: 'mmol/L',
-    classificationMethod: 'ESC/ESH',
-    glucoseUnit: 'mmol/L',
-    ketonesUnit: 'mmol/L',
-    hbA1cUnit: '%',
-    dateFormat: 'yyyy-MM-dd',
-    morningTime: '07:00',
-    noonTime: '12:00',
-    eveningTime: '18:00',
-    bedTime: '23:00',
-    use24HourClock: true
-  });
+  const settings = useSelector(state => state.settings);
+  const dispatch = useDispatch();
 
   // Helper function to update single field
-  const updateSetting = (field, value) => {
-    setSettings(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleUpdateSetting = (field, value) => {
+    dispatch(updateSetting({ field, value }));
   };
 
   const handleReset = () => {
-    setSettings(prev => ({
-      ...prev,
-      unitOfMeasurement: 'metric',
-      cholesterolUnit: 'mmol/L',
-      classificationMethod: 'ESC/ESH',
-      glucoseUnit: 'mmol/L',
-      ketonesUnit: 'mmol/L',
-      hbA1cUnit: '%',
-      dateFormat: 'yyyy-MM-dd',
-      morningTime: '07:00',
-      noonTime: '12:00',
-      eveningTime: '18:00',
-      bedTime: '23:00',
-      use24HourClock: true
-    }));
+    dispatch(resetSettings());
   };
 
   const handleSave = (e) => {
@@ -57,20 +28,15 @@ const Setting = () => {
     console.log(settings);
 
     // Set the success message and clear it after 3 seconds
-    updateSetting('message', 'Settings saved successfully');
-    setTimeout(() => updateSetting('message', ''), 3000);
+    dispatch(setMessage('Settings saved successfully'));
+    setTimeout(() => dispatch(clearMessage()), 3000);
   };
 
   // Loading state
   if (settings.isLoading) {
     return (
-      <div className="flex min-h-screen bg-gray-100">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-6">
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
-          </div>
-        </div>
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
       </div>
     );
   }
@@ -108,138 +74,133 @@ const Setting = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
-      
-      {/* Main Content Area */}
-      <div className="flex-1 ml-64 p-6">
-        <UserProfile/>
+    <div className="w-full">
+      <UserProfile/>
 
-        {/* Settings Form */}
-        <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-md">
-          <h1 className="text-2xl font-bold mb-6 text-gray-800">Settings</h1>
+      {/* Settings Form */}
+      <div className="max-w-xl mx-auto p-6 bg-white rounded-lg shadow-md mt-4">
+        <h1 className="text-2xl font-bold mb-6 text-gray-800">Settings</h1>
 
-          {settings.message && (
-            <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-lg border border-green-200">
-              {settings.message}
-            </div>
-          )}
+        {settings.message && (
+          <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-lg border border-green-200">
+            {settings.message}
+          </div>
+        )}
 
-          <form onSubmit={handleSave} className="space-y-4">
-            <SelectField
-              id="unitOfMeasurement"
-              label="Unit of Measurement"
-              value={settings.unitOfMeasurement}
-              onChange={updateSetting}
-              options={selectOptions.unitOfMeasurement}
+        <form onSubmit={handleSave} className="space-y-4">
+          <SelectField
+            id="unitOfMeasurement"
+            label="Unit of Measurement"
+            value={settings.unitOfMeasurement}
+            onChange={handleUpdateSetting}
+            options={selectOptions.unitOfMeasurement}
+          />
+          
+          <SelectField
+            id="cholesterolUnit"
+            label="Cholesterol Unit"
+            value={settings.cholesterolUnit}
+            onChange={handleUpdateSetting}
+            options={selectOptions.cholesterolUnit}
+          />
+
+          <SelectField
+            id="classificationMethod"
+            label="Classification Method"
+            value={settings.classificationMethod}
+            onChange={handleUpdateSetting}
+            options={selectOptions.classificationMethod}
+          />
+
+          <SelectField
+            id="glucoseUnit"
+            label="Glucose Unit"
+            value={settings.glucoseUnit}
+            onChange={handleUpdateSetting}
+            options={selectOptions.glucoseUnit}
+          />
+
+          <SelectField
+            id="ketonesUnit"
+            label="Ketones Unit"
+            value={settings.ketonesUnit}
+            onChange={handleUpdateSetting}
+            options={selectOptions.ketonesUnit}
+          />
+
+          <SelectField
+            id="hbA1cUnit"
+            label="HbA1c Unit"
+            value={settings.hbA1cUnit}
+            onChange={handleUpdateSetting}
+            options={selectOptions.hbA1cUnit}
+          />
+
+          <SelectField
+            id="dateFormat"
+            label="Date Format"
+            value={settings.dateFormat}
+            onChange={handleUpdateSetting}
+            options={selectOptions.dateFormat}
+          />
+
+          <TimeField
+            id="morningTime"
+            label="Morning Time"
+            value={settings.morningTime}
+            onChange={handleUpdateSetting}
+          />
+
+          <TimeField
+            id="noonTime"
+            label="Noon Time"
+            value={settings.noonTime}
+            onChange={handleUpdateSetting}
+          />
+
+          <TimeField
+            id="eveningTime"
+            label="Evening Time"
+            value={settings.eveningTime}
+            onChange={handleUpdateSetting}
+          />
+
+          <TimeField
+            id="bedTime"
+            label="Bed Time"
+            value={settings.bedTime}
+            onChange={handleUpdateSetting}
+          />
+
+          <div className="flex items-center">
+            <input
+              id="use24HourClock"
+              type="checkbox"
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+              checked={settings.use24HourClock}
+              onChange={(e) => handleUpdateSetting('use24HourClock', e.target.checked)}
             />
-            
-            <SelectField
-              id="cholesterolUnit"
-              label="Cholesterol Unit"
-              value={settings.cholesterolUnit}
-              onChange={updateSetting}
-              options={selectOptions.cholesterolUnit}
-            />
+            <label htmlFor="use24HourClock" className="ml-2 text-sm font-medium">
+              Use 24 Hour Clock
+            </label>
+          </div>
 
-            <SelectField
-              id="classificationMethod"
-              label="Classification Method"
-              value={settings.classificationMethod}
-              onChange={updateSetting}
-              options={selectOptions.classificationMethod}
-            />
-
-            <SelectField
-              id="glucoseUnit"
-              label="Glucose Unit"
-              value={settings.glucoseUnit}
-              onChange={updateSetting}
-              options={selectOptions.glucoseUnit}
-            />
-
-            <SelectField
-              id="ketonesUnit"
-              label="Ketones Unit"
-              value={settings.ketonesUnit}
-              onChange={updateSetting}
-              options={selectOptions.ketonesUnit}
-            />
-
-            <SelectField
-              id="hbA1cUnit"
-              label="HbA1c Unit"
-              value={settings.hbA1cUnit}
-              onChange={updateSetting}
-              options={selectOptions.hbA1cUnit}
-            />
-
-            <SelectField
-              id="dateFormat"
-              label="Date Format"
-              value={settings.dateFormat}
-              onChange={updateSetting}
-              options={selectOptions.dateFormat}
-            />
-
-            <TimeField
-              id="morningTime"
-              label="Morning Time"
-              value={settings.morningTime}
-              onChange={updateSetting}
-            />
-
-            <TimeField
-              id="noonTime"
-              label="Noon Time"
-              value={settings.noonTime}
-              onChange={updateSetting}
-            />
-
-            <TimeField
-              id="eveningTime"
-              label="Evening Time"
-              value={settings.eveningTime}
-              onChange={updateSetting}
-            />
-
-            <TimeField
-              id="bedTime"
-              label="Bed Time"
-              value={settings.bedTime}
-              onChange={updateSetting}
-            />
-
-            <div className="flex items-center">
-              <input
-                id="use24HourClock"
-                type="checkbox"
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-                checked={settings.use24HourClock}
-                onChange={(e) => updateSetting('use24HourClock', e.target.checked)}
-              />
-              <label htmlFor="use24HourClock" className="ml-2 text-sm font-medium">
-                Use 24 Hour Clock
-              </label>
-            </div>
-
-            <div className="flex space-x-4 pt-2">
-              <button
-                type="button"
-                onClick={handleReset}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-              >
-                Reset
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Save
-              </button>
-            </div>
-          </form>
-        </div>
+          <div className="flex space-x-4 pt-2">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+            >
+              Reset
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Save
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
