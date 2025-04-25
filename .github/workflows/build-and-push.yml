@@ -187,11 +187,30 @@ jobs:
         uses: azure/CLI@v1
         with:
           inlineScript: |
-            # Run migrations through the container app
-            az containerapp exec \
+            # Run migrations using a non-interactive approach
+            REVISION=$(az containerapp revision list \
               --name web-wizards-backend \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --command "python manage.py migrate"
+              --query "[?properties.active==\`true\`].name" \
+              -o tsv)
+            
+            echo "Current active revision: $REVISION"
+            
+            # Instead of using exec, create a job to run migrations
+            az containerapp job create \
+              --name "migrations-job-$(date +%s)" \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --environment web-wizards-env \
+              --image ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ needs.build-and-push.outputs.image_tag }} \
+              --command "python manage.py migrate" \
+              --cpu 0.25 \
+              --memory 0.5Gi \
+              --min-replicas 1 \
+              --max-replicas 1 \
+              --replica-timeout 1800 \
+              --replica-retry-limit 1
+            
+            echo "Migration job created and started"
       
       - name: Restart Container App
         uses: azure/CLI@v1
