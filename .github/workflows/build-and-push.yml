@@ -196,7 +196,7 @@ jobs:
             
             echo "Current active revision: $REVISION"
             
-            # Instead of using exec, create a job to run migrations
+            # Instead of using exec, create a job to run migrations with supported parameters only
             az containerapp job create \
               --name "migrations-job-$(date +%s)" \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
@@ -205,8 +205,6 @@ jobs:
               --command "python manage.py migrate" \
               --cpu 0.25 \
               --memory 0.5Gi \
-              --min-replicas 1 \
-              --max-replicas 1 \
               --replica-timeout 1800 \
               --replica-retry-limit 1
             
