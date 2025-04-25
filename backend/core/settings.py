@@ -20,9 +20,23 @@ from .sentry_config import init_sentry
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env file
+# Determine which environment file to use based on DJANGO_ENV
+# Set DJANGO_ENV=production to use production settings
+# e.g., export DJANGO_ENV=production (Linux/Mac) or set DJANGO_ENV=production (Windows)
+DJANGO_ENV = os.environ.get('DJANGO_ENV', 'development')
+env_file = f'.env.{DJANGO_ENV}'
+
+# Load environment variables from the appropriate .env file
 env = environ.Env()
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+env_path = os.path.join(BASE_DIR, env_file)
+
+if os.path.exists(env_path):
+    print(f"Loading environment from {env_file}")
+    environ.Env.read_env(env_path)
+else:
+    print(f"Warning: {env_file} not found, looking for .env file")
+    # Fallback to .env if the specific environment file doesn't exist
+    environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Initialize Sentry with configuration from environment variables
 init_sentry()

@@ -6,6 +6,7 @@ WORKDIR /app
 
 # Set Python to run in unbuffered mode
 ENV PYTHONUNBUFFERED=1
+ENV DJANGO_ENV=development
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
