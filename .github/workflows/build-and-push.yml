@@ -62,15 +62,157 @@ jobs:
           echo "| Image | Registry | Tags | Status |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend | ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }} | ${{ steps.set-tag.outputs.image_tag }}, latest | ✅ Built & Pushed |" >> $GITHUB_STEP_SUMMARY
-          
-  trigger-deploy:
-    runs-on: ubuntu-latest
+
+  deploy-to-azure:
+    name: Deploy to Azure
     needs: build-and-push
+    runs-on: ubuntu-latest
     if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test' || github.ref == 'refs/heads/ci/cd-pipeline' || github.event_name == 'workflow_dispatch')
+    
     steps:
-      - name: Trigger deployment workflow
-        uses: peter-evans/repository-dispatch@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Azure Login
+        uses: azure/login@v1
         with:
-          token: ${{ secrets.GHCR_PAT }}
-          event-type: trigger-deployment
-          client-payload: '{"image_tag": "${{ needs.build-and-push.outputs.image_tag }}"}'
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Extract secrets from JSON
+        id: extract-secrets
+        run: |
+          # Extract all secrets from the APP_SECRETS JSON
+          APP_SECRETS='${{ secrets.APP_SECRETS }}'
+          
+          # Extract individual values without fallbacks
+          MYSQL_USERNAME=$(echo $APP_SECRETS | jq -r '.MYSQL_ADMIN_USERNAME')
+          MYSQL_PASSWORD=$(echo $APP_SECRETS | jq -r '.MYSQL_ADMIN_PASSWORD')
+          DJANGO_SECRET=$(echo $APP_SECRETS | jq -r '.DJANGO_SECRET_KEY')
+          CLOUDINARY_NAME=$(echo $APP_SECRETS | jq -r '.CLOUDINARY_CLOUD_NAME')
+          CLOUDINARY_KEY=$(echo $APP_SECRETS | jq -r '.CLOUDINARY_API_KEY')
+          CLOUDINARY_SECRET=$(echo $APP_SECRETS | jq -r '.CLOUDINARY_API_SECRET')
+          EMAIL_USER=$(echo $APP_SECRETS | jq -r '.EMAIL_HOST_USER')
+          EMAIL_PASSWORD=$(echo $APP_SECRETS | jq -r '.EMAIL_HOST_PASSWORD')
+          SENTRY_DSN_VAL=$(echo $APP_SECRETS | jq -r '.SENTRY_DSN')
+          CORS_ORIGIN_VAL=$(echo $APP_SECRETS | jq -r '.CORS_ORIGIN')
+          
+          # Set output variables
+          echo "mysql_username=$MYSQL_USERNAME" >> $GITHUB_OUTPUT
+          echo "mysql_password=$MYSQL_PASSWORD" >> $GITHUB_OUTPUT
+          echo "django_secret=$DJANGO_SECRET" >> $GITHUB_OUTPUT
+          echo "cloudinary_name=$CLOUDINARY_NAME" >> $GITHUB_OUTPUT
+          echo "cloudinary_key=$CLOUDINARY_KEY" >> $GITHUB_OUTPUT
+          echo "cloudinary_secret=$CLOUDINARY_SECRET" >> $GITHUB_OUTPUT
+          echo "email_user=$EMAIL_USER" >> $GITHUB_OUTPUT
+          echo "email_password=$EMAIL_PASSWORD" >> $GITHUB_OUTPUT
+          echo "sentry_dsn=$SENTRY_DSN_VAL" >> $GITHUB_OUTPUT
+          echo "cors_origin=$CORS_ORIGIN_VAL" >> $GITHUB_OUTPUT
+      
+      - name: Update Backend Container App
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            echo "Updating backend container app with image tag: ${{ needs.build-and-push.outputs.image_tag }}"
+            
+            # Update existing container app with new image
+            az containerapp update \
+              --name web-wizards-backend \
+              --resource-group web-wizards-rg \
+              --image ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ needs.build-and-push.outputs.image_tag }}
+
+            # Update environment variables to ensure proper configuration
+            az containerapp update \
+              --name web-wizards-backend \
+              --resource-group web-wizards-rg \
+              --set-env-vars \
+                ENVIRONMENT=production \
+                DATABASE_ENGINE=django.db.backends.mysql \
+                DATABASE_HOST=webwizards-mysql.mysql.database.azure.com \
+                DATABASE_NAME=webwizardsdb \
+                DATABASE_USER=${{ steps.extract-secrets.outputs.mysql_username }} \
+                DATABASE_PASSWORD=${{ steps.extract-secrets.outputs.mysql_password }} \
+                DATABASE_PORT=3306 \
+                SECRET_KEY=${{ steps.extract-secrets.outputs.django_secret }} \
+                REDIS_URL=none \
+                DEBUG=False \
+                ALLOWED_HOSTS="*.azurecontainerapps.io,*.azurewebsites.net" \
+                CORS_ORIGIN=${{ steps.extract-secrets.outputs.cors_origin }} \
+                CLOUDINARY_CLOUD_NAME=${{ steps.extract-secrets.outputs.cloudinary_name }} \
+                CLOUDINARY_API_KEY=${{ steps.extract-secrets.outputs.cloudinary_key }} \
+                CLOUDINARY_API_SECRET=${{ steps.extract-secrets.outputs.cloudinary_secret }} \
+                SENTRY_DSN=${{ steps.extract-secrets.outputs.sentry_dsn }} \
+                SENTRY_ENVIRONMENT=production \
+                EMAIL_HOST=smtp.gmail.com \
+                EMAIL_PORT=587 \
+                EMAIL_USE_TLS=True \
+                EMAIL_HOST_USER=${{ steps.extract-secrets.outputs.email_user }} \
+                EMAIL_HOST_PASSWORD=${{ steps.extract-secrets.outputs.email_password }} \
+                DEFAULT_FROM_EMAIL="AmarHealth <${{ steps.extract-secrets.outputs.email_user }}>" \
+                DJANGO_LOG_LEVEL=INFO
+      
+      - name: Run Migrations
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Run migrations through the container app
+            az containerapp exec \
+              --name web-wizards-backend \
+              --resource-group web-wizards-rg \
+              --command "python manage.py migrate"
+      
+      - name: Restart Container App
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Create a new revision to restart the app
+            az containerapp revision copy \
+              --name web-wizards-backend \
+              --resource-group web-wizards-rg
+            
+            echo "Container app restarted with a new revision"
+      
+      - name: Get Backend URL
+        id: get-url
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            BACKEND_URL=$(az containerapp show \
+              --name web-wizards-backend \
+              --resource-group web-wizards-rg \
+              --query properties.configuration.ingress.fqdn \
+              --output tsv)
+            
+            echo "backend_url=https://$BACKEND_URL" >> $GITHUB_OUTPUT
+            echo "Backend URL: https://$BACKEND_URL"
+      
+      - name: Verify Deployment
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Verify that the correct image was deployed
+            DEPLOYED_IMAGE=$(az containerapp show \
+              --name web-wizards-backend \
+              --resource-group web-wizards-rg \
+              --query "properties.template.containers[0].image" \
+              -o tsv)
+            
+            EXPECTED_IMAGE="${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ needs.build-and-push.outputs.image_tag }}"
+            
+            echo "Deployed image: $DEPLOYED_IMAGE"
+            echo "Expected image: $EXPECTED_IMAGE"
+            
+            if [[ "$DEPLOYED_IMAGE" == "$EXPECTED_IMAGE" ]]; then
+              echo "✅ Deployment successful! The correct image is deployed."
+            else
+              echo "❌ Deployment verification failed. The deployed image does not match the expected image."
+              exit 1
+            fi
+            
+      - name: Deployment Summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | URL |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend API | ${{ steps.get-url.outputs.backend_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Admin Panel | ${{ steps.get-url.outputs.backend_url }}/admin/ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image Deployed | ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ needs.build-and-push.outputs.image_tag }} |" >> $GITHUB_STEP_SUMMARY
