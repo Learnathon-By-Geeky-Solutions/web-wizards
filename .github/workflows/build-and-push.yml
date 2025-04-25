@@ -183,33 +183,6 @@ jobs:
               "DEFAULT_FROM_EMAIL=AmarHealth <${{ steps.extract-secrets.outputs.email_user }}>" \
               "DJANGO_LOG_LEVEL=INFO"
       
-      - name: Run Migrations
-        uses: azure/CLI@v1
-        with:
-          inlineScript: |
-            # Run migrations using a non-interactive approach
-            REVISION=$(az containerapp revision list \
-              --name web-wizards-backend \
-              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --query "[?properties.active==\`true\`].name" \
-              -o tsv)
-            
-            echo "Current active revision: $REVISION"
-            
-            # Instead of using exec, create a job to run migrations with supported parameters only
-            az containerapp job create \
-              --name "migrations-job-$(date +%s)" \
-              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --environment web-wizards-env \
-              --image ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ needs.build-and-push.outputs.image_tag }} \
-              --command "python manage.py migrate" \
-              --cpu 0.25 \
-              --memory 0.5Gi \
-              --replica-timeout 1800 \
-              --replica-retry-limit 1
-            
-            echo "Migration job created and started"
-      
       - name: Restart Container App
         uses: azure/CLI@v1
         with:
