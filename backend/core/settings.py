@@ -71,7 +71,6 @@ CORS_ALLOWED_ORIGINS = [
     "http://amarhealth.tech",
     "http://www.amarhealth.tech",
     "https://web-wizards-backend.whitepebble-a989e7cd.southeastasia.azurecontainerapps.io",
-    "web-wizards-backend.whitepebble-a989e7cd.southeastasia.azurecontainerapps.io"
 
 ]
 
