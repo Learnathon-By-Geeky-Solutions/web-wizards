@@ -1,0 +1,161 @@
+name: Deploy to Azure Container Apps
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker Images"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  AZURE_RESOURCE_GROUP: web-wizards-rg
+  CONTAINER_ENV_NAME: web-wizards-env
+  REGISTRY: ghcr.io
+  ORGANIZATION: Learnathon-By-Geeky-Solutions
+  BACKEND_IMAGE: web-wizards-backend
+  MYSQL_SERVER_NAME: webwizards-mysql
+  MYSQL_DATABASE_NAME: learnathon
+  LOCATION: southeastasia
+
+jobs:
+  deploy-container-apps:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Setup Container Apps Environment
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Create resource group if not exists
+            az group show --name ${{ env.AZURE_RESOURCE_GROUP }} || \
+            az group create --name ${{ env.AZURE_RESOURCE_GROUP }} --location ${{ env.LOCATION }}
+            
+            # Check if environment exists, create if not
+            az containerapp env show \
+              --name ${{ env.CONTAINER_ENV_NAME }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} || \
+            az containerapp env create \
+              --name ${{ env.CONTAINER_ENV_NAME }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --location ${{ env.LOCATION }}
+      
+      - name: Deploy Backend Container App
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Check if container app exists
+            if az containerapp show --name web-wizards-backend --resource-group ${{ env.AZURE_RESOURCE_GROUP }} &>/dev/null; then
+              # Update existing container app
+              echo "Updating backend container app..."
+              az containerapp update \
+                --name web-wizards-backend \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --image ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:latest
+            else
+              # Create new container app
+              echo "Creating backend container app..."
+              az containerapp create \
+                --name web-wizards-backend \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --environment ${{ env.CONTAINER_ENV_NAME }} \
+                --image ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:latest \
+                --registry-server ${{ env.REGISTRY }} \
+                --registry-username ${{ github.actor }} \
+                --registry-password ${{ secrets.GHCR_PAT }} \
+                --target-port 8000 \
+                --ingress external \
+                --cpu 0.25 \
+                --memory 0.5Gi \
+                --min-replicas 0 \
+                --max-replicas 1 \
+                --enable-dapr no
+            fi
+            
+            # Configure environment variables explicitly for production
+            az containerapp update \
+              --name web-wizards-backend \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --set-env-vars \
+                ENVIRONMENT=production \
+                DATABASE_ENGINE=django.db.backends.mysql \
+                DATABASE_HOST=${{ env.MYSQL_SERVER_NAME }}.mysql.database.azure.com \
+                DATABASE_NAME=${{ env.MYSQL_DATABASE_NAME }} \
+                DATABASE_USER=${{ secrets.MYSQL_ADMIN_USERNAME }} \
+                DATABASE_PASSWORD=${{ secrets.MYSQL_ADMIN_PASSWORD }} \
+                SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }} \
+                DEBUG=False \
+                ALLOWED_HOSTS="*.azurecontainerapps.io,*.azurewebsites.net" \
+                CORS_ORIGIN=${{ secrets.CORS_ORIGIN || 'https://webwizards.vercel.app' }} \
+                CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME || 'dqmvu48nv' }} \
+                CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY || '135925513516985' }} \
+                CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET || 'MhsJDxWTgVG59Jla8IJzb91Re-E' }} \
+                SENTRY_DSN=${{ secrets.SENTRY_DSN }} \
+                SENTRY_ENVIRONMENT=production \
+                EMAIL_HOST=${{ secrets.EMAIL_HOST || 'smtp.gmail.com' }} \
+                EMAIL_PORT=${{ secrets.EMAIL_PORT || '587' }} \
+                EMAIL_USE_TLS=True \
+                EMAIL_HOST_USER=${{ secrets.EMAIL_HOST_USER }} \
+                EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }} \
+                DEFAULT_FROM_EMAIL=${{ secrets.DEFAULT_FROM_EMAIL || 'AmarHealth <webwizards429@gmail.com>' }} \
+                DJANGO_LOG_LEVEL=INFO
+      
+      - name: Get Backend URL
+        id: get-url
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            BACKEND_URL=$(az containerapp show \
+              --name web-wizards-backend \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --query properties.configuration.ingress.fqdn \
+              --output tsv)
+            
+            echo "backend_url=https://$BACKEND_URL" >> $GITHUB_OUTPUT
+            echo "Backend URL: https://$BACKEND_URL"
+      
+      - name: Run Migrations
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Run migrations through the container app
+            az containerapp exec \
+              --name web-wizards-backend \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --command "python manage.py migrate"
+      
+      - name: Create Admin User (if needed)
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Check if admin user exists (this is just a simple check)
+            echo "from django.contrib.auth import get_user_model; User = get_user_model(); print(User.objects.filter(is_superuser=True).exists())" > check_admin.py
+            
+            # Run the check
+            HAS_ADMIN=$(az containerapp exec \
+              --name web-wizards-backend \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --command "python -c 'import sys; exec(open(\"check_admin.py\").read())'" || echo "False")
+            
+            if [[ "$HAS_ADMIN" != "True" ]]; then
+              echo "Creating admin user..."
+              az containerapp exec \
+                --name web-wizards-backend \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --command "python manage.py createsuperuser --noinput --username admin --email admin@webwizards.com"
+            else
+              echo "Admin user already exists"
+            fi
+      
+      - name: Deployment Summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | URL |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend API | ${{ steps.get-url.outputs.backend_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Admin Panel | ${{ steps.get-url.outputs.backend_url }}/admin/ |" >> $GITHUB_STEP_SUMMARY

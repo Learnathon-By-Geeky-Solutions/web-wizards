@@ -1,0 +1,155 @@
+name: OCR Service Deployment for Production
+
+on:
+  push:
+    branches:
+      - main  # Only run on the main branch
+    paths:
+      - 'ocr_service/**'
+      - '.github/workflows/ocr-service-deployment.yml'
+  workflow_dispatch: # Allow manual triggering
+
+env:
+  AZURE_RESOURCE_GROUP: web-wizards-rg
+  OCR_APP_NAME: web-wizards-ocr
+  CONTAINER_REGISTRY: ghcr.io/${{ github.repository_owner }}
+  ENVIRONMENT: production
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push OCR service
+        uses: docker/build-push-action@v4
+        with:
+          context: ./ocr_service
+          push: true
+          tags: |
+            ${{ env.CONTAINER_REGISTRY }}/web-wizards-ocr:${{ github.sha }}
+            ${{ env.CONTAINER_REGISTRY }}/web-wizards-ocr:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-ocr-service:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Setup Container Apps Environment
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Create Container Apps Environment if not exists
+            ENVIRONMENT_NAME="${{ env.AZURE_RESOURCE_GROUP }}-env"
+            az containerapp env show \
+              --name $ENVIRONMENT_NAME \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} || \
+            az containerapp env create \
+              --name $ENVIRONMENT_NAME \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --location eastus
+      
+      - name: Deploy OCR service to Container App
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Get the environment name
+            ENVIRONMENT_NAME="${{ env.AZURE_RESOURCE_GROUP }}-env"
+            
+            # Check if container app already exists
+            az containerapp show \
+              --name ${{ env.OCR_APP_NAME }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} && \
+            # Update existing container app
+            az containerapp update \
+              --name ${{ env.OCR_APP_NAME }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --image ${{ env.CONTAINER_REGISTRY }}/web-wizards-ocr:${{ github.sha }} \
+              || \
+            # Create new container app if it doesn't exist
+            az containerapp create \
+              --name ${{ env.OCR_APP_NAME }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --environment $ENVIRONMENT_NAME \
+              --image ${{ env.CONTAINER_REGISTRY }}/web-wizards-ocr:${{ github.sha }} \
+              --registry-server ghcr.io \
+              --registry-username ${{ github.actor }} \
+              --registry-password ${{ secrets.GITHUB_TOKEN }} \
+              --target-port 8080 \
+              --ingress external \
+              --cpu 0.25 \
+              --memory 0.5Gi \
+              --min-replicas 0 \
+              --max-replicas 1 \
+              --scale-rule-name http-scale-rule \
+              --scale-rule-http-concurrency 10 \
+              --scale-rule-http-cooldown-period 120 \
+              --env-vars \
+                ENVIRONMENT=production \
+                LOG_LEVEL=INFO \
+                OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+
+  verify-and-update-backend:
+    needs: deploy-ocr-service
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Get OCR Service URL
+        uses: azure/CLI@v1
+        id: ocr-url
+        with:
+          inlineScript: |
+            URL=$(az containerapp show \
+              --name ${{ env.OCR_APP_NAME }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --query properties.configuration.ingress.fqdn \
+              --output tsv)
+            echo "OCR_URL=https://$URL" >> $GITHUB_OUTPUT
+      
+      - name: Update Backend with OCR Service URL
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Update backend with OCR service URL
+            az containerapp update \
+              --name web-wizards-backend \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --set-env-vars OCR_SERVICE_URL=${{ steps.ocr-url.outputs.OCR_URL }}
+      
+      - name: Verify OCR Service
+        run: |
+          echo "Waiting for OCR service to be ready..."
+          sleep 30
+          # Simple health check (adjust endpoint as needed)
+          curl -f -s https://${{ steps.ocr-url.outputs.OCR_URL }}/health || \
+          curl -f -s https://${{ steps.ocr-url.outputs.OCR_URL }}/ || \
+          (echo "OCR service health check failed"; exit 1)
+          
+          echo "OCR service successfully deployed and verified at https://${{ steps.ocr-url.outputs.OCR_URL }}"

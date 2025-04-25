@@ -1,0 +1,52 @@
+name: SonarCloud Analysis
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [reopened, synchronize, opened]
+  push:
+    branches:
+      - main
+
+jobs:
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies for backend
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install coverage pytest pytest-cov
+          
+      - name: Run tests with coverage for backend
+        run: |
+          cd backend
+          # Make sure PYTHONPATH is properly set (only the backend dir, not apps)
+          export PYTHONPATH=$PWD
+          export DJANGO_SETTINGS_MODULE=core.settings
+          # Run pytest with coverage
+          python -m pytest --cov=. --cov-report=xml:coverage.xml -v
+        continue-on-error: true
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=Learnathon-By-Geeky-Solutions_web-wizards
+            -Dsonar.sonar.alm.enabled=false
+            -Dsonar.python.coverage.reportPaths=backend/coverage.xml

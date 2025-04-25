@@ -1,0 +1,130 @@
+name: Database Setup and Optimization
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/apps/*/models/**'
+      - 'backend/apps/*/migrations/**'
+      - '.github/workflows/database-setup.yml'
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  AZURE_RESOURCE_GROUP: web-wizards-rg
+  MYSQL_SERVER_NAME: webwizards-mysql
+  MYSQL_DATABASE_NAME: webwizardsdb
+  BACKEND_IMAGE: web-wizards-backend
+  REGISTRY: ghcr.io
+
+jobs:
+  optimize-mysql-settings:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Optimize MySQL Settings
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Set performance_schema to OFF to reduce memory usage
+            az mysql flexible-server parameter set \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --server-name ${{ env.MYSQL_SERVER_NAME }} \
+              --name performance_schema \
+              --value OFF
+            
+            # Set max_connections to optimize connection limits
+            az mysql flexible-server parameter set \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --server-name ${{ env.MYSQL_SERVER_NAME }} \
+              --name max_connections \
+              --value 100
+            
+            # Optimize buffer pool size
+            az mysql flexible-server parameter set \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --server-name ${{ env.MYSQL_SERVER_NAME }} \
+              --name innodb_buffer_pool_size \
+              --value 134217728
+            
+            # Set connection timeout
+            az mysql flexible-server parameter set \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --server-name ${{ env.MYSQL_SERVER_NAME }} \
+              --name connect_timeout \
+              --value 10
+            
+            # Reduce wait timeout for idle connections
+            az mysql flexible-server parameter set \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --server-name ${{ env.MYSQL_SERVER_NAME }} \
+              --name wait_timeout \
+              --value 180
+            
+            # Enable slow query logging for performance monitoring
+            az mysql flexible-server parameter set \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --server-name ${{ env.MYSQL_SERVER_NAME }} \
+              --name slow_query_log \
+              --value ON
+            
+            echo "MySQL server parameters have been optimized"
+
+  run-migrations:
+    runs-on: ubuntu-latest
+    needs: optimize-mysql-settings
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Run Database Migrations
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Run migrations in a clean container that terminates when done
+            az container create \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name django-migrations-$(date +%s) \
+              --image ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.BACKEND_IMAGE }}:latest \
+              --registry-login-server ${{ env.REGISTRY }} \
+              --registry-username ${{ github.actor }} \
+              --registry-password ${{ secrets.GITHUB_TOKEN }} \
+              --restart-policy Never \
+              --command-line "python manage.py migrate --noinput" \
+              --environment-variables \
+                DATABASE_HOST=${{ env.MYSQL_SERVER_NAME }}.mysql.database.azure.com \
+                DATABASE_NAME=${{ env.MYSQL_DATABASE_NAME }} \
+                DATABASE_USER=${{ secrets.MYSQL_ADMIN_USERNAME }} \
+                DATABASE_PASSWORD=${{ secrets.MYSQL_ADMIN_PASSWORD }} \
+                SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }} \
+                DEBUG=False \
+                ENVIRONMENT=production
+            
+            # Wait for migrations to complete and get logs
+            MIGRATION_CONTAINER=django-migrations-$(date +%s)
+            az container logs \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name $MIGRATION_CONTAINER \
+              --follow
+            
+            # Clean up migration container
+            az container delete \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name $MIGRATION_CONTAINER \
+              --yes

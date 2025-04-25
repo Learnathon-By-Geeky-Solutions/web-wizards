@@ -1,0 +1,159 @@
+name: Database Migrations for Production
+
+on:
+  push:
+    branches:
+      - main  # Only run on the main branch
+    paths:
+      - 'backend/apps/*/models/**'
+      - 'backend/apps/*/migrations/**'
+      - '.github/workflows/database-migrations.yml'
+  workflow_dispatch: # Allow manual triggering
+
+env:
+  AZURE_RESOURCE_GROUP: web-wizards-rg
+  CONTAINER_REGISTRY: ghcr.io/Learnathon-By-Geeky-Solutions
+  MYSQL_SERVER_NAME: web-wizards-mysql
+  MYSQL_DATABASE_NAME: webwizardsdb
+  ENVIRONMENT: production
+  AZURE_REGION: southeastasia  # Updated for Bangladesh users
+
+jobs:
+  setup-database:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Ensure MySQL Server Exists
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Check if MySQL server exists, create if not
+            az mysql flexible-server show \
+              --name ${{ env.MYSQL_SERVER_NAME }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} || \
+            az mysql flexible-server create \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name ${{ env.MYSQL_SERVER_NAME }} \
+              --location ${{ env.AZURE_REGION }} \
+              --admin-user ${{ secrets.MYSQL_ADMIN_USERNAME }} \
+              --admin-password "${{ secrets.MYSQL_ADMIN_PASSWORD }}" \
+              --sku-name Standard_B1s \
+              --tier Burstable \
+              --storage-size 32 \
+              --version 8.0 \
+              --yes
+            
+            # Create database if it doesn't exist
+            az mysql flexible-server db show \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --server-name ${{ env.MYSQL_SERVER_NAME }} \
+              --database-name ${{ env.MYSQL_DATABASE_NAME }} || \
+            az mysql flexible-server db create \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --server-name ${{ env.MYSQL_SERVER_NAME }} \
+              --database-name ${{ env.MYSQL_DATABASE_NAME }}
+            
+            # Configure firewall to allow Azure services
+            az mysql flexible-server firewall-rule create \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name ${{ env.MYSQL_SERVER_NAME }} \
+              --rule-name AllowAzureServices \
+              --start-ip-address 0.0.0.0 \
+              --end-ip-address 0.0.0.0
+            
+            # Enable only needed features and disable others to save costs
+            az mysql flexible-server parameter set \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --server-name ${{ env.MYSQL_SERVER_NAME }} \
+              --name max_connections \
+              --value 100
+            
+            # Disable performance schema to save memory
+            az mysql flexible-server parameter set \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --server-name ${{ env.MYSQL_SERVER_NAME }} \
+              --name performance_schema \
+              --value OFF
+
+  build-migration-image:
+    runs-on: ubuntu-latest
+    needs: setup-database
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+      
+      - name: Build migrations image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ env.CONTAINER_REGISTRY }}/web-wizards-migrations:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  run-migrations:
+    needs: build-migration-image
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Run Database Migrations
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Run migrations in a clean container that terminates when done
+            az container create \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name django-migrations-prod \
+              --image ${{ env.CONTAINER_REGISTRY }}/web-wizards-migrations:${{ github.sha }} \
+              --registry-login-server ghcr.io \
+              --registry-username ${{ github.actor }} \
+              --registry-password ${{ secrets.GHCR_PAT }} \
+              --restart-policy Never \
+              --command-line "python manage.py migrate --noinput" \
+              --environment-variables \
+                DATABASE_HOST=${{ env.MYSQL_SERVER_NAME }}.mysql.database.azure.com \
+                DATABASE_NAME=${{ env.MYSQL_DATABASE_NAME }} \
+                DATABASE_USER=${{ secrets.MYSQL_ADMIN_USERNAME }} \
+                DATABASE_PASSWORD=${{ secrets.MYSQL_ADMIN_PASSWORD }} \
+                SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }} \
+                DEBUG=False \
+                ENVIRONMENT=production
+            
+            # Wait for migrations to complete
+            az container logs \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name django-migrations-prod \
+              --follow
+            
+            # Create success marker file for next workflow
+            echo "DB_MIGRATION_SUCCESS=$(date)" > $GITHUB_OUTPUT
+            
+            # Clean up
+            az container delete \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name django-migrations-prod \
+              --yes
