@@ -64,7 +64,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.amarhealth.tech",
     "http://amarhealth.tech",
     "http://www.amarhealth.tech",
-    
+    "https://web-wizards-backend.whitepebble-a989e7cd.southeastasia.azurecontainerapps.io"
+
 ]
 
 # Allow credentials in CORS requests

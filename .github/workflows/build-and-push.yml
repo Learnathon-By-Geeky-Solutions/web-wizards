@@ -2,7 +2,7 @@ name: Build and Push Docker Images
 
 on:
   push:
-    branches: [main, ci/cd-pipeline]
+    branches: [main, test, ci/cd-pipeline]
     paths-ignore:
       - '**.md'
   pull_request:
