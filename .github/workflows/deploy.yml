@@ -36,8 +36,9 @@ jobs:
         run: npm run build
         env:
           CI: false # This prevents treating warnings as errors
-          # Add any environment variables needed for the build
-          # VITE_API_URL: ${{ secrets.API_URL }}
+          # Add your production API URL for the build
+          VITE_API_URL: ${{ secrets.API_URL }}
+          VITE_SENTRY_ENVIRONMENT: production
       
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25

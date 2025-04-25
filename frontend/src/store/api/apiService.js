@@ -12,8 +12,11 @@ const publicEndpoints = [
   'token/'
 ];
 
+// Get API URL from environment variables or fallback to localhost
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 const baseQuery = fetchBaseQuery({
-  baseUrl: 'http://localhost:8000/api/',
+  baseUrl: `${API_URL}/api/`,
   prepareHeaders: (headers) => {
     // Get the access token from the token service
     const token = tokenService.getAccessToken();

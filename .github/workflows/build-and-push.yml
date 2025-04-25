@@ -149,7 +149,7 @@ jobs:
               --set-env-vars "DATABASE_PORT=3306" \
               "SECRET_KEY=${{ steps.extract-secrets.outputs.django_secret }}" \
               "REDIS_URL=none" \
-              "DEBUG=False" \
+              "DEBUG=True" \
               "ALLOWED_HOSTS=*.azurecontainerapps.io,*.azurewebsites.net"
 
       - name: Update Environment Variables (Part 3)
