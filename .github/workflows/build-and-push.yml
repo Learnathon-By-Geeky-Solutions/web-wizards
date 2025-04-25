@@ -66,7 +66,7 @@ jobs:
   trigger-deploy:
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test' || github.ref == 'refs/heads/ci/cd-pipeline' || github.event_name == 'workflow_dispatch')
     steps:
       - name: Trigger deployment workflow
         uses: peter-evans/repository-dispatch@v2
