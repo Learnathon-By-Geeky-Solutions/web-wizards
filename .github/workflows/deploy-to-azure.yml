@@ -6,7 +6,7 @@ on:
   workflow_run:
     workflows: ["Build and Push Docker Images"]
     types: [completed]
-    branches: [main]
+    branches: [main, test, ci/cd-pipeline]  # Updated to include all branches
   workflow_dispatch:  # Allow manual triggering
 
 env:
@@ -23,7 +23,7 @@ env:
 jobs:
   deploy-container-apps:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' || (github.event.workflow_run.conclusion == 'success' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'test' || github.event.workflow_run.head_branch == 'ci/cd-pipeline')) }}
     
     steps:
       - name: Azure Login
@@ -72,7 +72,16 @@ jobs:
           echo "email_password=$EMAIL_PASSWORD" >> $GITHUB_OUTPUT
           echo "sentry_dsn=$SENTRY_DSN_VAL" >> $GITHUB_OUTPUT
           echo "cors_origin=$CORS_ORIGIN_VAL" >> $GITHUB_OUTPUT
+          
+      - name: Debug Info
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Head branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Image tag to deploy: ${{ steps.set-image-tag.outputs.image_tag }}"
+          echo "Full image URL: ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ steps.set-image-tag.outputs.image_tag }}"
       
+      # Rest of your steps remain unchanged
       - name: Update Backend Container App
         uses: azure/CLI@v1
         with:
