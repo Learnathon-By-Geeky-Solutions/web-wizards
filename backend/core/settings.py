@@ -233,10 +233,12 @@ OCR_SERVICE_URL = env('OCR_SERVICE_URL', default='http://ocr_service:8000')
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 
 # Redis Cache Configuration
+REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379/1')
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://redis:6379/1",
+        "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "IGNORE_EXCEPTIONS": True,
@@ -244,9 +246,13 @@ CACHES = {
     }
 }
 
-# Use Redis for session storage
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS = "default"
+# Use Redis for session storage if Redis is available
+if REDIS_URL and REDIS_URL.lower() != 'none':
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "default"
+else:
+    # Fallback to database sessions if Redis is not available
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 # Cache timeout settings (in seconds)
 CACHE_TTL = 60 * 15  # 15 minutes default
