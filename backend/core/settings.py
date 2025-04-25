@@ -53,6 +53,12 @@ ALLOWED_HOSTS = [
     '127.0.0.1',          # Allow access via 127.0.0.1
     'localhost',          # Allow access via localhost
     'backend',            # Allow access via backend service name in Docker
+    "https://amarhealth.tech",
+    "https://www.amarhealth.tech",
+    "http://amarhealth.tech",
+    "http://www.amarhealth.tech",
+    "https://web-wizards-backend.whitepebble-a989e7cd.southeastasia.azurecontainerapps.io",
+    "web-wizards-backend.whitepebble-a989e7cd.southeastasia.azurecontainerapps.io"
 ]
 
 CORS_ALLOWED_ORIGINS = [
