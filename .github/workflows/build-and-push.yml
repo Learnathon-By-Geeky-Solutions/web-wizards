@@ -13,6 +13,9 @@ env:
   REGISTRY: ghcr.io
   ORGANIZATION: learnathon-by-geeky-solutions # using lowercase for Docker compatibility
   BACKEND_IMAGE: web-wizards-backend
+  AZURE_RESOURCE_GROUP: web-wizards-rg
+  MYSQL_SERVER_NAME: webwizards-mysql
+  MYSQL_DATABASE_NAME: webwizardsdb
 
 jobs:
   build-and-push:
@@ -62,7 +65,7 @@ jobs:
           echo "| Image | Registry | Tags | Status |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend | ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }} | ${{ steps.set-tag.outputs.image_tag }}, latest | ✅ Built & Pushed |" >> $GITHUB_STEP_SUMMARY
-
+          
   deploy-to-azure:
     name: Deploy to Azure
     needs: build-and-push
@@ -117,38 +120,41 @@ jobs:
             # Update existing container app with new image
             az containerapp update \
               --name web-wizards-backend \
-              --resource-group web-wizards-rg \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --image ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ needs.build-and-push.outputs.image_tag }}
 
+      - name: Update Environment Variables
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
             # Update environment variables to ensure proper configuration
             az containerapp update \
               --name web-wizards-backend \
-              --resource-group web-wizards-rg \
-              --set-env-vars \
-                ENVIRONMENT=production \
-                DATABASE_ENGINE=django.db.backends.mysql \
-                DATABASE_HOST=webwizards-mysql.mysql.database.azure.com \
-                DATABASE_NAME=webwizardsdb \
-                DATABASE_USER=${{ steps.extract-secrets.outputs.mysql_username }} \
-                DATABASE_PASSWORD=${{ steps.extract-secrets.outputs.mysql_password }} \
-                DATABASE_PORT=3306 \
-                SECRET_KEY=${{ steps.extract-secrets.outputs.django_secret }} \
-                REDIS_URL=none \
-                DEBUG=False \
-                ALLOWED_HOSTS="*.azurecontainerapps.io,*.azurewebsites.net" \
-                CORS_ORIGIN=${{ steps.extract-secrets.outputs.cors_origin }} \
-                CLOUDINARY_CLOUD_NAME=${{ steps.extract-secrets.outputs.cloudinary_name }} \
-                CLOUDINARY_API_KEY=${{ steps.extract-secrets.outputs.cloudinary_key }} \
-                CLOUDINARY_API_SECRET=${{ steps.extract-secrets.outputs.cloudinary_secret }} \
-                SENTRY_DSN=${{ steps.extract-secrets.outputs.sentry_dsn }} \
-                SENTRY_ENVIRONMENT=production \
-                EMAIL_HOST=smtp.gmail.com \
-                EMAIL_PORT=587 \
-                EMAIL_USE_TLS=True \
-                EMAIL_HOST_USER=${{ steps.extract-secrets.outputs.email_user }} \
-                EMAIL_HOST_PASSWORD=${{ steps.extract-secrets.outputs.email_password }} \
-                DEFAULT_FROM_EMAIL="AmarHealth <${{ steps.extract-secrets.outputs.email_user }}>" \
-                DJANGO_LOG_LEVEL=INFO
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --set-env-vars ENVIRONMENT=production \
+              --set-env-vars DATABASE_ENGINE=django.db.backends.mysql \
+              --set-env-vars DATABASE_HOST=${{ env.MYSQL_SERVER_NAME }}.mysql.database.azure.com \
+              --set-env-vars DATABASE_NAME=${{ env.MYSQL_DATABASE_NAME }} \
+              --set-env-vars DATABASE_USER=${{ steps.extract-secrets.outputs.mysql_username }} \
+              --set-env-vars DATABASE_PASSWORD=${{ steps.extract-secrets.outputs.mysql_password }} \
+              --set-env-vars DATABASE_PORT=3306 \
+              --set-env-vars SECRET_KEY=${{ steps.extract-secrets.outputs.django_secret }} \
+              --set-env-vars REDIS_URL=none \
+              --set-env-vars DEBUG=False \
+              --set-env-vars "ALLOWED_HOSTS=*.azurecontainerapps.io,*.azurewebsites.net" \
+              --set-env-vars CORS_ORIGIN=${{ steps.extract-secrets.outputs.cors_origin }} \
+              --set-env-vars CLOUDINARY_CLOUD_NAME=${{ steps.extract-secrets.outputs.cloudinary_name }} \
+              --set-env-vars CLOUDINARY_API_KEY=${{ steps.extract-secrets.outputs.cloudinary_key }} \
+              --set-env-vars CLOUDINARY_API_SECRET=${{ steps.extract-secrets.outputs.cloudinary_secret }} \
+              --set-env-vars SENTRY_DSN=${{ steps.extract-secrets.outputs.sentry_dsn }} \
+              --set-env-vars SENTRY_ENVIRONMENT=production \
+              --set-env-vars EMAIL_HOST=smtp.gmail.com \
+              --set-env-vars EMAIL_PORT=587 \
+              --set-env-vars EMAIL_USE_TLS=True \
+              --set-env-vars EMAIL_HOST_USER=${{ steps.extract-secrets.outputs.email_user }} \
+              --set-env-vars EMAIL_HOST_PASSWORD=${{ steps.extract-secrets.outputs.email_password }} \
+              --set-env-vars "DEFAULT_FROM_EMAIL=AmarHealth <${{ steps.extract-secrets.outputs.email_user }}>" \
+              --set-env-vars DJANGO_LOG_LEVEL=INFO
       
       - name: Run Migrations
         uses: azure/CLI@v1
@@ -157,7 +163,7 @@ jobs:
             # Run migrations through the container app
             az containerapp exec \
               --name web-wizards-backend \
-              --resource-group web-wizards-rg \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --command "python manage.py migrate"
       
       - name: Restart Container App
@@ -167,7 +173,7 @@ jobs:
             # Create a new revision to restart the app
             az containerapp revision copy \
               --name web-wizards-backend \
-              --resource-group web-wizards-rg
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }}
             
             echo "Container app restarted with a new revision"
       
@@ -178,7 +184,7 @@ jobs:
           inlineScript: |
             BACKEND_URL=$(az containerapp show \
               --name web-wizards-backend \
-              --resource-group web-wizards-rg \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --query properties.configuration.ingress.fqdn \
               --output tsv)
             
@@ -192,7 +198,7 @@ jobs:
             # Verify that the correct image was deployed
             DEPLOYED_IMAGE=$(az containerapp show \
               --name web-wizards-backend \
-              --resource-group web-wizards-rg \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --query "properties.template.containers[0].image" \
               -o tsv)
             
