@@ -4,12 +4,45 @@ import { toast } from 'react-toastify';
 import { FaArrowLeft, FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
 import { useGetHealthIssueQuery, useDeleteHealthIssueMutation } from '../store/api/healthIssuesApi';
 import ConfirmDialog from '../components/common/ConfirmDialog';
-import LogbookEntriesList from '../components/HealthIssues/LogbookEntriesList';
 import SymptomsList from '../components/HealthIssues/SymptomsList';
-import ChartsList from '../components/HealthIssues/ChartsList';
-import LabResultsList from '../components/HealthIssues/LabResultsList';
-import DocumentsList from '../components/HealthIssues/DocumentsList';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+
+// Create placeholders for the missing components
+const LogbookEntriesList = ({ healthIssueId }) => {
+  return (
+    <div className="bg-white rounded-lg p-4 shadow">
+      <p className="text-gray-500 italic">No logbook entries found.</p>
+      <p className="text-sm text-gray-400 mt-2">Use the button above to add your first entry.</p>
+    </div>
+  );
+};
+
+const ChartsList = ({ healthIssueId }) => {
+  return (
+    <div className="bg-white rounded-lg p-4 shadow">
+      <p className="text-gray-500 italic">No charts or measurements found.</p>
+      <p className="text-sm text-gray-400 mt-2">Use the button above to add your first measurement.</p>
+    </div>
+  );
+};
+
+const LabResultsList = ({ healthIssueId }) => {
+  return (
+    <div className="bg-white rounded-lg p-4 shadow">
+      <p className="text-gray-500 italic">No lab results found.</p>
+      <p className="text-sm text-gray-400 mt-2">Use the button above to add your first lab result.</p>
+    </div>
+  );
+};
+
+const DocumentsList = ({ healthIssueId }) => {
+  return (
+    <div className="bg-white rounded-lg p-4 shadow">
+      <p className="text-gray-500 italic">No documents found.</p>
+      <p className="text-sm text-gray-400 mt-2">Use the button above to upload your first document.</p>
+    </div>
+  );
+};
 
 const HealthIssueDetail = () => {
   const { id } = useParams();
