@@ -193,6 +193,9 @@ DATABASES = {
         'PASSWORD': env('DATABASE_PASSWORD'),
         'HOST': env('DATABASE_HOST'),
         'PORT': env('DATABASE_PORT'),
+        'OPTIONS': {
+            'ssl_mode': env('MYSQL_SSL_MODE', default='REQUIRED'),
+        },
     }
 }
 
