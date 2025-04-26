@@ -1,6 +1,12 @@
 import Cookies from 'js-cookie';
 import { secureStore, secureRetrieve } from '../utils/security';
 
+// Format API URL consistently and log for debugging
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+
+// Log API URL for debugging
+console.log('TokenService using API URL:', API_URL);
+
 // In-memory storage for access token (not accessible from XSS attacks)
 let inMemoryToken = null;
 
@@ -96,8 +102,6 @@ class TokenService {
    */
   async setHttpOnlyCookie(token) {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      
       await fetch(`${API_URL}/api/users/auth/set-refresh-cookie/`, {
         method: 'POST',
         credentials: 'include', // Important for cookies
@@ -144,8 +148,6 @@ class TokenService {
    */
   async clearHttpOnlyCookie() {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      
       await fetch(`${API_URL}/api/users/auth/clear-refresh-cookie/`, {
         method: 'POST',
         credentials: 'include',

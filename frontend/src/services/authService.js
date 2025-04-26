@@ -1,4 +1,9 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Format API URL consistently and log for debugging
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+
+// Log API URL for debugging
+console.log('AuthService using API URL:', API_URL);
+
 const TOKEN_REFRESH_THRESHOLD = 3 * 60 * 1000; // 3 minutes in milliseconds (adjusted for 15-min token)
 import { tokenService } from './tokenService';
 
@@ -58,7 +63,13 @@ class AuthService {
 
     // Helper method for API requests
     async apiRequest(endpoint, options = {}) {
+        // Ensure endpoint starts with /api/ if not already
+        if (!endpoint.startsWith('/api/') && !endpoint.startsWith('api/')) {
+            endpoint = `/api${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+        }
+        
         const url = `${API_URL}${endpoint}`;
+        console.log('Making API request to:', url);
         
         // Default request options
         const requestOptions = {
