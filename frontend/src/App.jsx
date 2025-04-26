@@ -1,9 +1,7 @@
-import React, { useContext, Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { lazy, Suspense, useContext, useEffect } from 'react';
+import { createBrowserRouter, RouterProvider, useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+// Import core components directly
 import Home from './pages/Home';
 import LoadingScreen from './components/common/LoadingScreen';
 import { AuthProvider } from './context/authContext';
