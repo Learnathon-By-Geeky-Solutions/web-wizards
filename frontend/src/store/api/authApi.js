@@ -6,7 +6,7 @@ export const authApi = apiService.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation({
       query: (credentials) => ({
-        url: 'users/login/',  // Add leading slash for absolute path from baseUrl
+        url: 'users/login/', // Removed leading slash
         method: 'POST',
         body: credentials,
         credentials: 'include', // Important for HttpOnly cookies
@@ -31,7 +31,7 @@ export const authApi = apiService.injectEndpoints({
     
     register: builder.mutation({
       query: (userData) => ({
-        url: 'users/register/',  // Add leading slash for absolute path from baseUrl
+        url: 'users/register/', // Removed leading slash
         method: 'POST',
         body: userData,
       }),
@@ -58,13 +58,13 @@ export const authApi = apiService.injectEndpoints({
     }),
     
     getProfile: builder.query({
-      query: () => 'users/profile/',  // Add leading slash for absolute path from baseUrl
+      query: () => 'users/profile/', // Removed leading slash
       providesTags: ['User'],
     }),
     
     updateProfile: builder.mutation({
       query: (profileData) => ({
-        url: 'users/profile/',  // Add leading slash for absolute path from baseUrl
+        url: 'users/profile/', // Removed leading slash
         method: 'PATCH',
         body: profileData,
       }),
@@ -73,7 +73,7 @@ export const authApi = apiService.injectEndpoints({
     
     logout: builder.mutation({
       query: () => ({
-        url: 'users/logout/',  // Add leading slash for absolute path from baseUrl
+        url: 'users/logout/', // Removed leading slash
         method: 'POST',
         credentials: 'include', // Important for HttpOnly cookies
       }),
@@ -95,7 +95,7 @@ export const authApi = apiService.injectEndpoints({
 
     forgotPassword: builder.mutation({
       query: (email) => ({
-        url: 'users/forgot-password/',  // Add leading slash for absolute path from baseUrl
+        url: 'users/forgot-password/', // Removed leading slash
         method: 'POST',
         body: { email },
       }),
@@ -124,5 +124,4 @@ export const {
   useLogoutMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
-  // useGoogleLoginMutation removed from exports
 } = authApi;

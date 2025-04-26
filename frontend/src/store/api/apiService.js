@@ -13,7 +13,11 @@ const publicEndpoints = [
 ];
 
 // Get API URL from environment variables or fallback to localhost
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Ensure the URL doesn't end with a slash to maintain consistency
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+
+// For debugging in production
+console.log('Using API URL:', API_URL);
 
 const baseQuery = fetchBaseQuery({
   baseUrl: `${API_URL}/api/`,
