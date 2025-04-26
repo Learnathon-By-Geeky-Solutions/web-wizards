@@ -1,35 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { fetchSymptomsByHealthIssue } from '../../api/healthIssuesApi';
+import { useGetSymptomsByHealthIssueQuery } from '../../store/api/healthIssuesApi';
 
 const SymptomsList = ({ healthIssueId, onRefresh }) => {
-  const [symptoms, setSymptoms] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadSymptoms = async () => {
-    try {
-      setLoading(true);
-      const data = await fetchSymptomsByHealthIssue(healthIssueId);
-      setSymptoms(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Failed to load symptoms:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadSymptoms();
-  }, [healthIssueId]);
+  const { data: symptoms = [], isLoading, refetch } = useGetSymptomsByHealthIssueQuery(healthIssueId);
 
   // Allow parent components to trigger a refresh
   useEffect(() => {
     if (onRefresh) {
-      loadSymptoms();
+      refetch();
     }
-  }, [onRefresh]);
+  }, [onRefresh, refetch]);
 
-  if (loading) {
+  if (isLoading) {
     return <div className="text-center py-4">Loading symptoms...</div>;
   }
 

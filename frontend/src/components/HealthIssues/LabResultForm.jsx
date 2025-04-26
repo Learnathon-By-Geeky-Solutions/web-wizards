@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
-import { createLabResult } from '../../api/healthIssuesApi';
+import { useCreateLabResultMutation } from '../../store/api/healthIssuesApi';
 import { toast } from 'react-toastify';
 
 const LabResultForm = ({ healthIssueId, onSuccess }) => {
-  const navigate = useNavigate();
+  const [createLabResult] = useCreateLabResultMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     test_name: '',
@@ -55,12 +54,10 @@ const LabResultForm = ({ healthIssueId, onSuccess }) => {
         data.append('image', selectedFile);
       }
       
-      await createLabResult(data);
+      await createLabResult(data).unwrap();
       toast.success('Lab result added successfully');
       if (onSuccess) {
         onSuccess();
-      } else {
-        navigate(`/health-issues/${healthIssueId}`);
       }
     } catch (error) {
       console.error('Failed to add lab result:', error);
@@ -68,10 +65,6 @@ const LabResultForm = ({ healthIssueId, onSuccess }) => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleCancel = () => {
-    navigate(`/health-issues/${healthIssueId}`);
   };
 
   return (

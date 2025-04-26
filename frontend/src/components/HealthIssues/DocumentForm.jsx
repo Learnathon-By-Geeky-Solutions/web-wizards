@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
-import { createDocument } from '../../api/healthIssuesApi';
+import { useCreateDocumentForHealthIssueMutation } from '../../store/api/healthIssuesApi';
 import { toast } from 'react-toastify';
 
 const DocumentForm = ({ healthIssueId, onSuccess }) => {
-  const navigate = useNavigate();
+  const [createDocument] = useCreateDocumentForHealthIssueMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -56,12 +55,10 @@ const DocumentForm = ({ healthIssueId, onSuccess }) => {
       // Add the document file
       data.append('file', selectedFile);
       
-      await createDocument(data);
+      await createDocument(data).unwrap();
       toast.success('Document uploaded successfully');
       if (onSuccess) {
         onSuccess();
-      } else {
-        navigate(`/health-issues/${healthIssueId}`);
       }
     } catch (error) {
       console.error('Failed to upload document:', error);
@@ -69,10 +66,6 @@ const DocumentForm = ({ healthIssueId, onSuccess }) => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleCancel = () => {
-    navigate(`/health-issues/${healthIssueId}`);
   };
 
   return (

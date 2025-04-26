@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
-import { createLogbookEntry } from '../../api/healthIssuesApi';
+import { useCreateLogbookEntryMutation } from '../../store/api/healthIssuesApi';
 import DateTimeInput from '../common/DateTimeInput';
 import { toast } from 'react-toastify';
 
 const LogbookEntryForm = ({ healthIssueId, onSuccess }) => {
-  const navigate = useNavigate();
+  const [createLogbookEntry] = useCreateLogbookEntryMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -33,12 +32,10 @@ const LogbookEntryForm = ({ healthIssueId, onSuccess }) => {
 
     setIsSubmitting(true);
     try {
-      await createLogbookEntry(formData);
+      await createLogbookEntry(formData).unwrap();
       toast.success('Logbook entry created successfully');
       if (onSuccess) {
         onSuccess();
-      } else {
-        navigate(`/health-issues/${healthIssueId}`);
       }
     } catch (error) {
       console.error('Failed to create logbook entry:', error);
@@ -46,10 +43,6 @@ const LogbookEntryForm = ({ healthIssueId, onSuccess }) => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleCancel = () => {
-    navigate(`/health-issues/${healthIssueId}`);
   };
 
   return (

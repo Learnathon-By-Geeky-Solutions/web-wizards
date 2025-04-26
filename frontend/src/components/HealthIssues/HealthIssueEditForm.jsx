@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
-import { fetchHealthIssueById, updateHealthIssue } from '../../api/healthIssuesApi';
+import { useGetHealthIssueQuery, useUpdateHealthIssueMutation } from '../../store/api/healthIssuesApi';
 import DateTimeInput from '../common/DateTimeInput';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 const HealthIssueEditForm = ({ healthIssueId }) => {
   const navigate = useNavigate();
@@ -19,31 +19,30 @@ const HealthIssueEditForm = ({ healthIssueId }) => {
     end_time: ''
   });
 
-  useEffect(() => {
-    const loadHealthIssue = async () => {
-      try {
-        setIsLoading(true);
-        const data = await fetchHealthIssueById(healthIssueId);
-        setFormData({
-          title: data.title || '',
-          description: data.description || '',
-          status: data.status || 'active',
-          start_date: data.start_date || '',
-          start_time: data.start_time || '',
-          end_date: data.end_date || '',
-          end_time: data.end_time || ''
-        });
-      } catch (error) {
-        console.error('Failed to load health issue:', error);
-        toast.error('Failed to load health issue details');
-        navigate(`/health-issues/${healthIssueId}`);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const { data, error } = useGetHealthIssueQuery(healthIssueId);
 
-    loadHealthIssue();
-  }, [healthIssueId, navigate]);
+  const [updateHealthIssue] = useUpdateHealthIssueMutation();
+
+  useEffect(() => {
+    if (data) {
+      setFormData({
+        title: data.title || '',
+        description: data.description || '',
+        status: data.status || 'active',
+        start_date: data.start_date || '',
+        start_time: data.start_time || '',
+        end_date: data.end_date || '',
+        end_time: data.end_time || ''
+      });
+      setIsLoading(false);
+    }
+
+    if (error) {
+      console.error('Failed to load health issue:', error);
+      toast.error('Failed to load health issue details');
+      navigate(`/health-issues/${healthIssueId}`);
+    }
+  }, [data, error, healthIssueId, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -62,7 +61,7 @@ const HealthIssueEditForm = ({ healthIssueId }) => {
 
     setIsSubmitting(true);
     try {
-      await updateHealthIssue(healthIssueId, formData);
+      await updateHealthIssue({ id: healthIssueId, ...formData }).unwrap();
       toast.success('Health issue updated successfully');
       navigate(`/health-issues/${healthIssueId}`);
     } catch (error) {

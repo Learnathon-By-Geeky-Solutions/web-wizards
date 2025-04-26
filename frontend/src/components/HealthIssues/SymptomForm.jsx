@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
-import { createSymptom } from '../../api/healthIssuesApi';
+import { useCreateSymptomForHealthIssueMutation } from '../../store/api/healthIssuesApi';
 import DateTimeInput from '../common/DateTimeInput';
 import { toast } from 'react-toastify';
 
 const SymptomForm = ({ healthIssueId, onSuccess }) => {
-  const navigate = useNavigate();
+  const [createSymptomForHealthIssue] = useCreateSymptomForHealthIssueMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -35,7 +34,7 @@ const SymptomForm = ({ healthIssueId, onSuccess }) => {
 
     setIsSubmitting(true);
     try {
-      await createSymptom(formData);
+      await createSymptomForHealthIssue(formData).unwrap();
       toast.success('Symptom recorded successfully');
       // First call onSuccess if provided to trigger any parent updates
       if (onSuccess) {

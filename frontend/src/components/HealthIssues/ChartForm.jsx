@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
-import { createChart } from '../../api/healthIssuesApi';
+import { useCreateChartMutation } from '../../store/api/healthIssuesApi';
 import DateTimeInput from '../common/DateTimeInput';
 import { toast } from 'react-toastify';
 
 const ChartForm = ({ healthIssueId, onSuccess }) => {
-  const navigate = useNavigate();
+  const [createChart] = useCreateChartMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -71,12 +70,10 @@ const ChartForm = ({ healthIssueId, onSuccess }) => {
       await createChart({
         ...formData,
         value: parseFloat(formData.value)
-      });
+      }).unwrap();
       toast.success('Chart data recorded successfully');
       if (onSuccess) {
         onSuccess();
-      } else {
-        navigate(`/health-issues/${healthIssueId}`);
       }
     } catch (error) {
       console.error('Failed to record chart data:', error);
@@ -84,10 +81,6 @@ const ChartForm = ({ healthIssueId, onSuccess }) => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleCancel = () => {
-    navigate(`/health-issues/${healthIssueId}`);
   };
 
   return (
@@ -195,7 +188,7 @@ const ChartForm = ({ healthIssueId, onSuccess }) => {
         <div className="flex justify-end space-x-3 pt-4">
           <button
             type="button"
-            onClick={handleCancel}
+            onClick={() => window.history.back()}
             className="px-4 py-2 border rounded text-gray-700 hover:bg-gray-100"
             disabled={isSubmitting}
           >
