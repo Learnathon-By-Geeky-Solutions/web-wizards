@@ -11,6 +11,10 @@ import { useProcessGoogleCallbackMutation } from '../store/api/oauthApi';
 import { useGetUserProfileQuery } from '../store/api/userProfileApi';
 // Import AuthContext from the new file
 import { AuthContext } from './authContextDefinition';
+import { secureStore, secureRetrieve } from '../utils/security';
+
+// Store user profile data for faster restoration after refresh
+const USER_PROFILE_CACHE_KEY = '_user_profile_cache';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUserState] = useState(null);
@@ -25,6 +29,54 @@ export const AuthProvider = ({ children }) => {
   const { refetch: refetchUserProfile } = useGetUserProfileQuery(undefined, {
     skip: !isAuthenticated, // Skip fetching if not authenticated
   });
+
+  // Helper function to normalize user data structure
+  const normalizeUserData = (userData) => {
+    if (!userData) return null;
+    
+    // Make sure we have consistent structure regardless of source (Google or API)
+    return {
+      id: userData.id || userData.user_id || '',
+      email: userData.email || '',
+      name: userData.name || userData.username || '',
+      image: userData.image || userData.profile_picture || null,
+      // Add other fields as needed
+      is_staff: userData.is_staff || false,
+      is_doctor: userData.is_doctor || false,
+      user_type: userData.user_type || 'patient',
+      ...userData // Keep any additional fields
+    };
+  };
+  
+  // Helper function to update user state
+  const updateUserState = (userData) => {
+    // Normalize the structure to ensure consistency
+    const normalizedUser = normalizeUserData(userData);
+    
+    if (normalizedUser) {
+      console.log("Setting user state:", normalizedUser);
+      
+      // Update state
+      setUserState(normalizedUser);
+      
+      // Update Redux
+      dispatch(setReduxUser(normalizedUser));
+      
+      // Cache user data for page refreshes
+      secureStore(USER_PROFILE_CACHE_KEY, normalizedUser, true);
+      
+      // Set user information in Sentry
+      setSentryUser({
+        id: normalizedUser.id,
+        email: normalizedUser.email,
+        username: normalizedUser.name,
+      });
+      
+      return normalizedUser;
+    }
+    
+    return null;
+  };
 
   // This useEffect runs only once on component mount
   useEffect(() => {
@@ -41,6 +93,14 @@ export const AuthProvider = ({ children }) => {
         accessToken: !!token, 
         refreshToken: !!refreshToken 
       });
+      
+      // Try to restore user from cache first for immediate UI display
+      const cachedUser = secureRetrieve(USER_PROFILE_CACHE_KEY, true);
+      if (cachedUser) {
+        console.log("Found cached user data:", cachedUser);
+        setUserState(normalizeUserData(cachedUser));
+        dispatch(setReduxUser(normalizeUserData(cachedUser)));
+      }
       
       if (token && refreshToken) {
         console.log("Valid tokens found, restoring session...");
@@ -66,15 +126,7 @@ export const AuthProvider = ({ children }) => {
           
           // Gracefully handle if userData is not available
           if (userData) {
-            setUserState(userData);
-            dispatch(setReduxUser(userData));
-            
-            // Set user information in Sentry
-            setSentryUser({
-              id: userData.id,
-              email: userData.email,
-              username: userData.name,
-            });
+            updateUserState(userData);
           } else {
             throw new Error("Failed to fetch user data");
           }
@@ -90,21 +142,21 @@ export const AuthProvider = ({ children }) => {
             // Retry profile fetch with new token
             const { data: userData } = await refetchUserProfile();
             if (userData) {
-              setUserState(userData);
-              dispatch(setReduxUser(userData));
-              
-              // Set user information in Sentry
-              setSentryUser({
-                id: userData.id,
-                email: userData.email,
-                username: userData.name,
-              });
+              updateUserState(userData);
               console.log("Auth restored after token refresh");
               setLoading(false);
               return;
             }
           } catch (refreshError) {
             console.error("Token refresh failed:", refreshError);
+          }
+          
+          // If we have cached user data, we can still keep the user logged in
+          // This prevents logout on temporary API issues
+          if (cachedUser) {
+            console.log("Using cached user data as fallback");
+            setLoading(false);
+            return;
           }
           
           // If we get here, both initial fetch and refresh attempts failed
@@ -147,18 +199,8 @@ export const AuthProvider = ({ children }) => {
       
       // Get user profile after successful login
       const { data: userData } = await refetchUserProfile();
-      setUserState(userData);
-      dispatch(setReduxUser(userData));
+      updateUserState(userData);
       setIsAuthenticated(true);
-      
-      // Set user information in Sentry
-      if (userData) {
-        setSentryUser({
-          id: userData.id,
-          email: userData.email,
-          username: userData.name,
-        });
-      }
       
       // Initialize the token refresh mechanism
       authService.startTokenRefreshTimer();
@@ -194,22 +236,14 @@ export const AuthProvider = ({ children }) => {
       
       // Set user information directly from the response
       if (response.user) {
-        const userData = {
+        const userData = normalizeUserData({
           ...response.user,
           // Ensure profile image is properly set
           image: response.user.image || null
-        };
-        
-        setUserState(userData);
-        dispatch(setReduxUser(userData));
-        setIsAuthenticated(true);
-        
-        // Set user information in Sentry
-        setSentryUser({
-          id: userData.id,
-          email: userData.email,
-          username: userData.name,
         });
+        
+        updateUserState(userData);
+        setIsAuthenticated(true);
         
         // Initialize the token refresh mechanism
         authService.startTokenRefreshTimer();
@@ -230,6 +264,9 @@ export const AuthProvider = ({ children }) => {
     } finally {
       // Clear tokens securely
       tokenService.clearTokens();
+      
+      // Clear cached user profile
+      sessionStorage.removeItem(USER_PROFILE_CACHE_KEY);
       
       setUserState(null);
       dispatch(clearUser());
