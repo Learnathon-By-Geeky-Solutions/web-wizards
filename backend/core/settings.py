@@ -244,20 +244,27 @@ OCR_SERVICE_URL = env('OCR_SERVICE_URL', default='http://ocr_service:8000')
 # OpenAI API Configuration
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 
-# Redis Cache Configuration - Disabled temporarily to fix connection error
-# REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379/1')
-REDIS_URL = None  # Setting to None to disable Redis
+# Redis Cache Configuration
+REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379/1')
 
-# Update cache to use local memory instead of Redis
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "unique-snowflake",
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
+        }
     }
 }
 
-# Use database for session storage since Redis is disabled
-SESSION_ENGINE = "django.contrib.sessions.backends.db"
+# Use Redis for session storage if Redis is available
+if REDIS_URL and REDIS_URL.lower() != 'none':
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "default"
+else:
+    # Fallback to database sessions if Redis is not available
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 # Cache timeout settings (in seconds)
 CACHE_TTL = 60 * 15  # 15 minutes default
@@ -305,12 +312,9 @@ CLOUDINARY_STORAGE = {
 
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
-# Celery Configuration - Disabled temporarily
-# CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-# CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-CELERY_TASK_ALWAYS_EAGER = True  # Run tasks synchronously for testing
-CELERY_BROKER_URL = None
-CELERY_RESULT_BACKEND = None
+# Celery Configuration
+CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
