@@ -37,7 +37,6 @@ jobs:
         run: npm run build
         env:
           CI: false # This prevents treating warnings as errors
-          # Add your production API URL for the build
           VITE_API_URL: ${{ secrets.API_URL }}
           VITE_SENTRY_ENVIRONMENT: production
       
@@ -48,4 +47,6 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: ./frontend
-          vercel-args: '--prod'
+          vercel-args: '--prod --confirm'
+          github-comment: false
+          github-token: ${{ secrets.GHCR_PAT }}
