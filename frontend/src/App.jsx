@@ -1,10 +1,13 @@
-import { lazy, Suspense, useContext, useEffect } from 'react';
-import { createBrowserRouter, RouterProvider, useNavigate } from 'react-router-dom';
+import React, { useContext, Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import PropTypes from 'prop-types';
-// Import core components directly
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Home from './pages/Home';
 import LoadingScreen from './components/common/LoadingScreen';
-import { AuthProvider, AuthContext } from './context/authContext';
+import { AuthProvider } from './context/authContext';
+import { AuthContext } from './context/authContextDefinition';
 import { UserProvider } from './context/UserContext'; // Import UserProvider
 import SentryErrorBoundary from './components/common/SentryErrorBoundary';
 import { Provider } from 'react-redux';
