@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { setUser as setSentryUser } from '../utils/sentry';
 import { useDispatch } from 'react-redux';
@@ -20,14 +20,18 @@ export const AuthProvider = ({ children }) => {
   const [user, setUserState] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
   const dispatch = useDispatch();
   
-  // RTK Query hooks
+  // RTK Query hooks - use manual triggering instead of automatic queries
   const [login] = useLoginMutation();
   const [logout] = useLogoutMutation();
   const [processGoogleCallback] = useProcessGoogleCallbackMutation();
+  
+  // Skip the profile query during initial load to avoid premature requests
+  // We'll manually trigger it after proper token initialization
   const { refetch: refetchUserProfile } = useGetUserProfileQuery(undefined, {
-    skip: !isAuthenticated, // Skip fetching if not authenticated
+    skip: true, // Always skip automatic query
   });
 
   // Helper function to normalize user data structure
@@ -49,7 +53,7 @@ export const AuthProvider = ({ children }) => {
   };
   
   // Helper function to update user state
-  const updateUserState = (userData) => {
+  const updateUserState = useCallback((userData) => {
     // Normalize the structure to ensure consistency
     const normalizedUser = normalizeUserData(userData);
     
@@ -76,120 +80,30 @@ export const AuthProvider = ({ children }) => {
     }
     
     return null;
-  };
-
-  // This useEffect runs only once on component mount
-  useEffect(() => {
-    console.log("AuthProvider initializing...");
-    
-    const initAuth = async () => {
-      console.log("Checking for existing tokens...");
-      
-      // Check for token in our secure storage
-      const token = tokenService.getAccessToken();
-      const refreshToken = tokenService.getRefreshToken();
-      
-      console.log("Tokens found:", { 
-        accessToken: !!token, 
-        refreshToken: !!refreshToken 
-      });
-      
-      // Try to restore user from cache first for immediate UI display
-      const cachedUser = secureRetrieve(USER_PROFILE_CACHE_KEY, true);
-      if (cachedUser) {
-        console.log("Found cached user data:", cachedUser);
-        setUserState(normalizeUserData(cachedUser));
-        dispatch(setReduxUser(normalizeUserData(cachedUser)));
+  }, [dispatch]);
+  
+  // Fetch user profile safely
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      console.log("Fetching user profile...");
+      // Use RTK Query refetch to get user profile
+      const result = await refetchUserProfile().unwrap();
+      if (result) {
+        updateUserState(result);
+        return result;
       }
-      
-      if (token && refreshToken) {
-        console.log("Valid tokens found, restoring session...");
-        setIsAuthenticated(true);
-
-        // Set up the auth service with this context
-        authService.setAuthContext({
-          login: handleLogin,
-          loginWithGoogle,
-          logout: handleLogout,
-          setUser: setUserState,
-          setIsAuthenticated
-        });
-        
-        // Initialize the token refresh mechanism
-        authService.startTokenRefreshTimer();
-
-        try {
-          console.log("Fetching user profile...");
-          // Use RTK Query to fetch user profile
-          const { data: userData } = await refetchUserProfile();
-          console.log("User profile fetched successfully:", userData ? "success" : "failed");
-          
-          // Gracefully handle if userData is not available
-          if (userData) {
-            updateUserState(userData);
-          } else {
-            throw new Error("Failed to fetch user data");
-          }
-        } catch (error) {
-          console.error('Error initializing auth:', error);
-          
-          // Check if token refresh would help
-          try {
-            console.log("Attempting token refresh...");
-            await authService.refreshToken();
-            console.log("Token refreshed, retrying profile fetch...");
-            
-            // Retry profile fetch with new token
-            const { data: userData } = await refetchUserProfile();
-            if (userData) {
-              updateUserState(userData);
-              console.log("Auth restored after token refresh");
-              setLoading(false);
-              return;
-            }
-          } catch (refreshError) {
-            console.error("Token refresh failed:", refreshError);
-          }
-          
-          // If we have cached user data, we can still keep the user logged in
-          // This prevents logout on temporary API issues
-          if (cachedUser) {
-            console.log("Using cached user data as fallback");
-            setLoading(false);
-            return;
-          }
-          
-          // If we get here, both initial fetch and refresh attempts failed
-          console.log("Authentication restoration failed, clearing tokens...");
-          // Use isPageRefresh=false to ensure complete logout
-          tokenService.clearTokens(false);
-          setIsAuthenticated(false);
-          setUserState(null);
-          dispatch(clearUser());
-        }
-      } else {
-        console.log("No valid tokens found");
-        setIsAuthenticated(false);
-      }
-      setLoading(false);
-    };
-
-    initAuth();
-    
-    // Clean up function for token refresh timer
-    return () => {
-      if (authService.tokenRefreshInterval) {
-        console.log("Cleaning up token refresh timer");
-        clearInterval(authService.tokenRefreshInterval);
-      }
-    };
-  }, [dispatch, refetchUserProfile]);
+      return null;
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      return null;
+    }
+  }, [refetchUserProfile, updateUserState]);
 
   // Helper function for login
-  const handleLogin = async (credentials) => {
+  const handleLogin = useCallback(async (credentials) => {
     try {
       // Use RTK Query mutation for login
-      const { data: response } = await login(credentials).unwrap();
+      const response = await login(credentials).unwrap();
       
       // Store tokens securely
       if (response.access && response.refresh) {
@@ -198,9 +112,10 @@ export const AuthProvider = ({ children }) => {
       }
       
       // Get user profile after successful login
-      const { data: userData } = await refetchUserProfile();
-      updateUserState(userData);
-      setIsAuthenticated(true);
+      const userData = await fetchUserProfile();
+      if (userData) {
+        setIsAuthenticated(true);
+      }
       
       // Initialize the token refresh mechanism
       authService.startTokenRefreshTimer();
@@ -211,9 +126,9 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
       throw error;
     }
-  };
+  }, [login, fetchUserProfile]);
 
-  const loginWithGoogle = async (params) => {
+  const loginWithGoogle = useCallback(async (params) => {
     try {
       // Process the OAuth callback with the code and redirect URI
       // Handle both string code and object with code & redirectUri
@@ -222,7 +137,7 @@ export const AuthProvider = ({ children }) => {
       
       console.log("AuthContext: Processing Google login with redirectUri:", redirectUri);
       
-      // Call the API with both code and redirect URI - only once
+      // Call the API with both code and redirect URI
       const response = await processGoogleCallback({
         code,
         redirect_uri: redirectUri
@@ -255,12 +170,14 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
       throw error;
     }
-  };
+  }, [processGoogleCallback, updateUserState]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       // Use RTK Query mutation for logout
       await logout().unwrap();
+    } catch (error) {
+      console.error('Logout error:', error);
     } finally {
       // Clear tokens securely
       tokenService.clearTokens();
@@ -280,7 +197,109 @@ export const AuthProvider = ({ children }) => {
         clearInterval(authService.tokenRefreshInterval);
       }
     }
-  };
+  }, [logout, dispatch]);
+
+  // This useEffect runs only once on component mount
+  useEffect(() => {
+    console.log("AuthProvider initializing...");
+    
+    const initAuth = async () => {
+      try {
+        console.log("Checking for existing tokens...");
+        
+        // Check for token in our secure storage
+        const token = tokenService.getAccessToken();
+        const refreshToken = tokenService.getRefreshToken();
+        
+        console.log("Tokens found:", { 
+          accessToken: !!token, 
+          refreshToken: !!refreshToken 
+        });
+        
+        // Try to restore user from cache first for immediate UI display
+        const cachedUser = secureRetrieve(USER_PROFILE_CACHE_KEY, true);
+        if (cachedUser) {
+          console.log("Found cached user data:", cachedUser);
+          setUserState(normalizeUserData(cachedUser));
+          dispatch(setReduxUser(normalizeUserData(cachedUser)));
+        }
+        
+        if (token && refreshToken) {
+          console.log("Valid tokens found, restoring session...");
+          setIsAuthenticated(true);
+  
+          // Set up the auth service with this context
+          authService.setAuthContext({
+            login: handleLogin,
+            loginWithGoogle,
+            logout: handleLogout,
+            setUser: setUserState,
+            setIsAuthenticated
+          });
+          
+          // Initialize the token refresh mechanism
+          authService.startTokenRefreshTimer();
+          
+          // Now that auth state is properly initialized, mark as ready
+          setIsInitialized(true);
+  
+          try {
+            // Fetch user profile in a safe way - this will not trigger the RTK error
+            console.log("Fetching user profile after init...");
+            const userData = await fetchUserProfile();
+            
+            if (!userData && cachedUser) {
+              console.log("Using cached user data since API fetch failed");
+              // Keep using the cached data
+            } else if (!userData && !cachedUser) {
+              console.log("No user data available, attempting token refresh");
+              
+              // Try refreshing token
+              try {
+                await authService.refreshToken();
+                // Retry profile fetch
+                const refreshedUserData = await fetchUserProfile();
+                
+                if (!refreshedUserData) {
+                  throw new Error("Still failed to fetch user data after token refresh");
+                }
+              } catch (refreshError) {
+                console.error("Token refresh failed:", refreshError);
+                throw refreshError;
+              }
+            }
+          } catch (profileError) {
+            console.error("Failed to fetch profile after multiple attempts:", profileError);
+            // If we have cached data, we can still keep user logged in
+            if (!cachedUser) {
+              console.log("No cached data available, logging out");
+              await handleLogout();
+            }
+          }
+        } else {
+          console.log("No valid tokens found");
+          setIsAuthenticated(false);
+          setIsInitialized(true);
+        }
+      } catch (error) {
+        console.error("Critical initialization error:", error);
+        setIsAuthenticated(false);
+        setIsInitialized(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+    
+    // Clean up function for token refresh timer
+    return () => {
+      if (authService.tokenRefreshInterval) {
+        console.log("Cleaning up token refresh timer");
+        clearInterval(authService.tokenRefreshInterval);
+      }
+    };
+  }, [dispatch, fetchUserProfile, handleLogin, handleLogout, loginWithGoogle, updateUserState]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -290,6 +309,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider value={{ 
       user, 
       isAuthenticated, 
+      isInitialized, 
       login: handleLogin, 
       loginWithGoogle, 
       logout: handleLogout, 
