@@ -4,8 +4,10 @@ const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replac
 // Log API URL for debugging
 console.log('AuthService using API URL:', API_URL);
 
-const TOKEN_REFRESH_THRESHOLD = 3 * 60 * 1000; // 3 minutes in milliseconds (adjusted for 15-min token)
+// Adjusted for 15-minute token lifespan - refresh when 3 minutes remaining
+const TOKEN_REFRESH_THRESHOLD = 3 * 60 * 1000; 
 import { tokenService } from './tokenService';
+import { isTokenExpired } from '../utils/security';
 
 // Parse JWT and get expiration time
 const getTokenExpiryTime = (token) => {
@@ -24,7 +26,8 @@ const getTokenExpiryTime = (token) => {
 class AuthService {
     constructor() {
         this.tokenRefreshInterval = null;
-        this.startTokenRefreshTimer();
+        this.authContext = null;
+        // Don't start the timer immediately - wait for initialization
     }
 
     // Start timer to check token expiration periodically
@@ -34,10 +37,15 @@ class AuthService {
             clearInterval(this.tokenRefreshInterval);
         }
         
+        console.log("Starting token refresh timer");
+        
         // Check token expiration every minute
         this.tokenRefreshInterval = setInterval(() => {
             this.checkTokenExpiration();
         }, 60000); // 1 minute
+        
+        // Also check immediately on start
+        this.checkTokenExpiration();
     }
 
     // Check if token is close to expiration and refresh if needed
@@ -51,14 +59,22 @@ class AuthService {
         const currentTime = Date.now();
         const timeUntilExpiry = expiryTime - currentTime;
         
+        console.log(`Token expires in ${Math.floor(timeUntilExpiry / 1000 / 60)} minutes ${Math.floor((timeUntilExpiry / 1000) % 60)} seconds`);
+        
         // If token will expire within the threshold, refresh it
         if (timeUntilExpiry < TOKEN_REFRESH_THRESHOLD) {
+            console.log("Token nearing expiration, refreshing...");
             try {
-                await this.refreshToken();
+                const refreshResult = await this.refreshToken();
+                console.log("Token refreshed successfully:", !!refreshResult);
+                return refreshResult;
             } catch (error) {
                 console.error('Failed to refresh token:', error);
+                return null;
             }
         }
+        
+        return token;
     }
 
     // Helper method for API requests
@@ -96,19 +112,26 @@ class AuthService {
             // Handle 401 Unauthorized errors (token expired)
             if (response.status === 401) {
                 try {
+                    console.log("401 Unauthorized, attempting token refresh");
                     // Try to refresh the token
                     await this.refreshToken();
                     
                     // Retry the original request with new token
                     const newAuthHeader = tokenService.getAuthHeader();
                     if (newAuthHeader) {
+                        console.log("Retrying original request with new token");
                         requestOptions.headers['Authorization'] = newAuthHeader;
                         return fetch(url, requestOptions);
                     }
                 } catch (refreshError) {
+                    console.error("Token refresh failed after 401:", refreshError);
                     // If refresh fails, logout
                     tokenService.clearTokens();
-                    window.location.href = '/login';
+                    
+                    // Only redirect if not already on login page
+                    if (!window.location.pathname.includes('/login')) {
+                        window.location.href = '/login';
+                    }
                     throw refreshError;
                 }
             }
@@ -137,10 +160,12 @@ class AuthService {
     async refreshToken() {
         const refreshToken = tokenService.getRefreshToken();
         if (!refreshToken) {
+            console.error("No refresh token available");
             throw new Error('No refresh token available');
         }
         
         try {
+            console.log("Attempting to refresh token with refresh token");
             const response = await fetch(`${API_URL}/api/token/refresh/`, {
                 method: 'POST',
                 headers: {
@@ -153,10 +178,13 @@ class AuthService {
             });
             
             if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error("Token refresh failed with status:", response.status, errorData);
                 throw new Error('Token refresh failed');
             }
             
             const data = await response.json();
+            console.log("Token refresh successful, received new tokens");
             
             // Store access token securely
             if (data.access) {

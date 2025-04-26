@@ -26,48 +26,114 @@ export const AuthProvider = ({ children }) => {
     skip: !isAuthenticated, // Skip fetching if not authenticated
   });
 
+  // This useEffect runs only once on component mount
   useEffect(() => {
+    console.log("AuthProvider initializing...");
+    
     const initAuth = async () => {
-      // Check for token in our secure storage instead of localStorage
+      console.log("Checking for existing tokens...");
+      
+      // Check for token in our secure storage
       const token = tokenService.getAccessToken();
       const refreshToken = tokenService.getRefreshToken();
       
+      console.log("Tokens found:", { 
+        accessToken: !!token, 
+        refreshToken: !!refreshToken 
+      });
+      
       if (token && refreshToken) {
+        console.log("Valid tokens found, restoring session...");
         setIsAuthenticated(true);
 
         // Set up the auth service with this context
-        authService.setAuthContext(AuthContext);
+        authService.setAuthContext({
+          login: handleLogin,
+          loginWithGoogle,
+          logout: handleLogout,
+          setUser: setUserState,
+          setIsAuthenticated
+        });
         
         // Initialize the token refresh mechanism
         authService.startTokenRefreshTimer();
 
         try {
+          console.log("Fetching user profile...");
           // Use RTK Query to fetch user profile
           const { data: userData } = await refetchUserProfile();
-          setUserState(userData);
-          dispatch(setReduxUser(userData));
+          console.log("User profile fetched successfully:", userData ? "success" : "failed");
           
-          // Set user information in Sentry
+          // Gracefully handle if userData is not available
           if (userData) {
+            setUserState(userData);
+            dispatch(setReduxUser(userData));
+            
+            // Set user information in Sentry
             setSentryUser({
               id: userData.id,
               email: userData.email,
               username: userData.name,
             });
+          } else {
+            throw new Error("Failed to fetch user data");
           }
         } catch (error) {
           console.error('Error initializing auth:', error);
-          // Use isPageRefresh=true to avoid clearing HttpOnly cookie during page refresh
-          tokenService.clearTokens(true);
+          
+          // Check if token refresh would help
+          try {
+            console.log("Attempting token refresh...");
+            await authService.refreshToken();
+            console.log("Token refreshed, retrying profile fetch...");
+            
+            // Retry profile fetch with new token
+            const { data: userData } = await refetchUserProfile();
+            if (userData) {
+              setUserState(userData);
+              dispatch(setReduxUser(userData));
+              
+              // Set user information in Sentry
+              setSentryUser({
+                id: userData.id,
+                email: userData.email,
+                username: userData.name,
+              });
+              console.log("Auth restored after token refresh");
+              setLoading(false);
+              return;
+            }
+          } catch (refreshError) {
+            console.error("Token refresh failed:", refreshError);
+          }
+          
+          // If we get here, both initial fetch and refresh attempts failed
+          console.log("Authentication restoration failed, clearing tokens...");
+          // Use isPageRefresh=false to ensure complete logout
+          tokenService.clearTokens(false);
           setIsAuthenticated(false);
+          setUserState(null);
+          dispatch(clearUser());
         }
+      } else {
+        console.log("No valid tokens found");
+        setIsAuthenticated(false);
       }
       setLoading(false);
     };
 
     initAuth();
+    
+    // Clean up function for token refresh timer
+    return () => {
+      if (authService.tokenRefreshInterval) {
+        console.log("Cleaning up token refresh timer");
+        clearInterval(authService.tokenRefreshInterval);
+      }
+    };
   }, [dispatch, refetchUserProfile]);
 
+  // Helper function for login
   const handleLogin = async (credentials) => {
     try {
       // Use RTK Query mutation for login
