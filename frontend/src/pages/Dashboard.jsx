@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { AuthContext } from '../context/authContext';
+import { AuthContext } from '../context/authContextDefinition';
 import MainLayout from '../layouts/MainLayout';
 import DashboardHeader from '../components/Dashboard/DashboardHeader';
 import ChartSection from '../components/Dashboard/ChartSection';

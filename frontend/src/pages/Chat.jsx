@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../context/authContext';
+import { AuthContext } from '../context/authContextDefinition';
 import MainLayout from '../layouts/MainLayout';
 import ChatHeader from '../components/Chat/ChatHeader';
 import ChatContent from '../components/Chat/ChatContent';

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, {useContext, useState} from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { AuthContext } from '../context/authContext';
 import MainLayout from '../layouts/MainLayout';
+import { AuthContext } from '../context/authContextDefinition';
 import AppointmentHeader from '../components/Appointments/AppointmentHeader';
 import AppointmentFilters from '../components/Appointments/AppointmentFilters';
 import AppointmentContent from '../components/Appointments/AppointmentContent';
@@ -10,7 +10,7 @@ import { withSentryErrorBoundary } from '../components/common/withSentryErrorBou
 import { setFilter } from '../store/slices/appointmentSlice';
 
 const Appointments = () => {
-  const { user } = React.useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const { appointments, filter: appointmentFilter, loading: isLoading } = useSelector(state => state.appointments);
   const dispatch = useDispatch();
   

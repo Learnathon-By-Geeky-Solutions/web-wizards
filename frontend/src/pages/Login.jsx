@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FcGoogle } from 'react-icons/fc';
 import { useLoginMutation, useResendVerificationEmailMutation } from '../store/api/authApi';
 import { useInitiateGoogleLoginMutation } from '../store/api/oauthApi';
-import { AuthContext } from '../context/authContext';
+import { AuthContext } from '../context/authContextDefinition';
 
 const Login = () => {
   const {

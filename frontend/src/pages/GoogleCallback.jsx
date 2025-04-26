@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProcessGoogleCallbackMutation } from '../store/api/oauthApi';
-import Spinner from '../components/common/Spinner';
-import { AuthContext } from '../context/authContext';
+import LoadingScreen from '../components/common/LoadingScreen';
+import { AuthContext } from '../context/authContextDefinition';
 
 /**
  * Component to handle Google OAuth callback
@@ -74,7 +74,7 @@ const GoogleCallback = () => {
   if (status === 'processing') {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-        <Spinner size="large" />
+        <LoadingScreen size="large" />
         <h2 className="mt-4 text-xl font-medium">Processing Google login...</h2>
         <p className="mt-2 text-gray-600">Please wait while we complete your authentication.</p>
       </div>

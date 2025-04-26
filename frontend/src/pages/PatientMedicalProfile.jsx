@@ -1,12 +1,12 @@
 import React, { useState, useRef, useContext } from 'react';
-import {
+import { 
   ChevronDownIcon,
   ChevronUpIcon,
 } from '@heroicons/react/24/outline';
 import AddCondition from '../components/MedicalRecord/MedicalRecord/AddCondition';
 import AddAllergy from '../components/MedicalRecord/MedicalRecord/AddAllergy';
 import { useUploadProfileImageMutation, useUpdatePatientProfileMutation } from '../store/api/userProfileApi';
-import { AuthContext } from '../context/authContext';
+import { AuthContext } from '../context/authContextDefinition';
 
 const PatientMedicalProfile = () => {
   const { user } = useContext(AuthContext);
