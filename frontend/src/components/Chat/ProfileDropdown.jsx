@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 import PropTypes from 'prop-types';
-import { AuthContext } from '../../context/authContext';
+import { AuthContext } from '../../context/authContextDefinition';
 
 const ProfileDropdown = ({ user }) => {
   const { logout } = useContext(AuthContext);
