@@ -157,12 +157,6 @@ class TokenService {
       });
     } catch (error) {
       console.error('Failed to clear HttpOnly cookie:', error);
-throw error;
-    }
-  }
-  
-  /**
-   * Get authorization header value for API requests
       throw error;
     }
   }

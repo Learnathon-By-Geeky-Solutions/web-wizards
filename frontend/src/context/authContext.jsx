@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { setUser as setSentryUser } from '../utils/sentry';
 import { useDispatch } from 'react-redux';
@@ -9,8 +9,8 @@ import { tokenService } from '../services/tokenService';
 import { useLoginMutation, useLogoutMutation } from '../store/api/authApi';
 import { useProcessGoogleCallbackMutation } from '../store/api/oauthApi';
 import { useGetUserProfileQuery } from '../store/api/userProfileApi';
-
-export const AuthContext = createContext(null);
+// Import AuthContext from the new file
+import { AuthContext } from './authContextDefinition';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUserState] = useState(null);
