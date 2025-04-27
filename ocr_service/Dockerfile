@@ -48,5 +48,5 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Run the application
-CMD ["python", "run.py"]
+# Run the application - Updated to use main.py instead of run.py
+CMD ["python", "main.py"]

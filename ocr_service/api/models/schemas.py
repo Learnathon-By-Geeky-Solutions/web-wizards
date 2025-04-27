@@ -1,47 +1,29 @@
-from pydantic import BaseModel, Field, AnyHttpUrl
-from typing import Dict, List, Optional, Any
-from datetime import datetime
+from pydantic import BaseModel
+from typing import Dict, Any, Optional, List
 
-class ProcessCloudinaryURLRequest(BaseModel):
-    """Request model for processing a document (PDF or image) from Cloudinary URL"""
-    document_url: AnyHttpUrl = Field(..., description="Cloudinary URL of the document to process")
+class ImageURLRequest(BaseModel):
+    """Request model for processing an image URL"""
+    image_url: str
 
-class TestParameter(BaseModel):
-    """Model for a single test parameter"""
-    name: str
-    value: str
-    unit: Optional[str] = None
-    normal_range: Optional[str] = None
+class PDFURLRequest(BaseModel):
+    """Request model for processing a PDF URL"""
+    pdf_url: str
 
-class TestResult(BaseModel):
-    """Model for a medical test result"""
-    test_type: str
-    parameters: Dict[str, Any]
+class DocumentURLRequest(BaseModel):
+    """Request model for processing any document (image or PDF) from a URL"""
+    document_url: str
+
+# Keep for backward compatibility
+ProcessCloudinaryURLRequest = DocumentURLRequest
+
+class ExtractedTextResponse(BaseModel):
+    """Response model for extracted raw text"""
+    extracted_text: str
 
 class OCRResponse(BaseModel):
-    """Response model for OCR processing"""
-    test_date: Optional[datetime] = None
-    lab_name: Optional[str] = "Unknown Lab"
+    """Response model for processed OCR data in structured format"""
+    test_date: Optional[str] = None
+    lab_name: Optional[str] = None
     test_type: Optional[str] = None
-    tests: Optional[List[TestResult]] = None
-    # Legacy fields for backward compatibility
-    cbc: Optional[Dict[str, Any]] = None
-    ure: Optional[Dict[str, Any]] = None
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "test_date": "2025-04-15T00:00:00",
-                "lab_name": "Metro Medical Laboratory",
-                "test_type": "Multiple Tests",
-                "tests": [
-                    {
-                        "test_type": "CBC",
-                        "parameters": {
-                            "wbc": {"value": "7.5", "unit": "10^9/L", "normal_range": "4.0-11.0"},
-                            "rbc": {"value": "4.8", "unit": "10^12/L", "normal_range": "4.5-5.5"}
-                        }
-                    }
-                ]
-            }
-        }
+    tests: List[Dict[str, Any]] = []
+    raw_text: Optional[str] = None  # Added field to include the raw extracted text

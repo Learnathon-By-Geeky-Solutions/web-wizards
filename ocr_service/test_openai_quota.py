@@ -2,13 +2,14 @@ import google.generativeai as genai
 import json
 import os
 from core.config import settings
+from utils.ai_processor import AIProcessor
 
-# Configure the API key for Google Generative AI
-api_key = os.environ.get('GEMINI_API_KEY', settings.GEMINI_API_KEY)
-genai.configure(api_key=api_key)
+# Create an instance of the AIProcessor class
+ai_processor = AIProcessor()
 
-print(f"Using model: {settings.GEMINI_MODEL}")
-print(f"API key configured: {'Yes' if api_key else 'No'}")
+# API key is already configured in the AIProcessor initialization
+print(f"Using model: {ai_processor.model_name}")
+print(f"API key configured: {'Yes' if ai_processor.api_key else 'No'}")
 
 # Create some dummy OCR extracted data to simulate a medical test result
 dummy_ocr_text = """
@@ -34,45 +35,46 @@ Albumin         4.0      g/dL     3.5-5.0
 Patient Notes: Patient appears healthy. No significant abnormalities detected.
 """
 
-# Create the system prompt for medical data extraction
-system_prompt = """
-You are a medical document analyzer specialized in extracting structured information from lab test results.
-Analyze the text and extract the following information in JSON format:
-
-1. Test date
-2. Lab name
-3. Test type (CBC, URE, LFT, etc.)
-4. Test parameters with their values, units, and normal ranges
-
-Response format:
-{
-    "test_date": "YYYY-MM-DD",
-    "lab_name": "Name of the Laboratory", 
-    "test_type": "Type of test or 'Multiple Tests'",
-    "tests": [
-        {
-            "test_type": "CBC",
-            "parameters": {
-                "parameter_name": {
-                    "value": "numeric or text value",
-                    "unit": "unit of measurement",
-                    "normal_range": "reference range"
-                },
-                ...more parameters
-            }
-        },
-        ...more test types
-    ]
-}
-
-Return ONLY the JSON object, with no additional text, markdown formatting, or code blocks.
-"""
-
 print("\nProcessing dummy OCR text with Google Gemini...")
 
 try:
+    # Using the AIProcessor instance to process the text
     # Create a model instance
     model = genai.GenerativeModel(model_name=settings.GEMINI_MODEL)
+    
+    # Get the system prompt from the AIProcessor
+    system_prompt = """
+    You are a medical document analyzer specialized in extracting structured information from lab test results.
+    Analyze the text and extract the following information in JSON format:
+
+    1. Test date
+    2. Lab name
+    3. Test type (CBC, URE, LFT, etc.)
+    4. Test parameters with their values, units, and normal ranges
+
+    Response format:
+    {
+        "test_date": "YYYY-MM-DD",
+        "lab_name": "Name of the Laboratory", 
+        "test_type": "Type of test or 'Multiple Tests'",
+        "tests": [
+            {
+                "test_type": "CBC",
+                "parameters": {
+                    "parameter_name": {
+                        "value": "numeric or text value",
+                        "unit": "unit of measurement",
+                        "normal_range": "reference range"
+                    }
+                },
+                ...more parameters
+            },
+            ...more test types
+        ]
+    }
+
+    Return ONLY the JSON object, with no additional text, markdown formatting, or code blocks.
+    """
     
     # Generate content combining the system prompt and dummy text
     response = model.generate_content([
@@ -85,7 +87,7 @@ try:
     print(response.text)
     print("------------------------")
     
-    # Try to parse the response as JSON
+    # Try to parse the response as JSON - reusing code from AIProcessor
     try:
         # Clean up response - remove any markdown code block markers
         cleaned_response = response.text.strip()

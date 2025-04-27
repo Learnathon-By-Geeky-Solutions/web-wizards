@@ -43,7 +43,7 @@ services:
       - db
     env_file:
       - .env
-    command: python run.py
+    command: python main.py
 
   db:
     image: mysql:8.0
