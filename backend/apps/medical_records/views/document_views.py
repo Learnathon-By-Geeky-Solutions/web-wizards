@@ -122,7 +122,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 folder="medical_documents", 
                 public_id=public_id,
                 overwrite=True,
-                resource_type=resource_type
+                resource_type="auto"
             )
             
             # Update the document with the new file URL
@@ -134,6 +134,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 print("Processing Lab report to extract the test result")
                 # Process the document with OCR service
                 ocr_response = OCRServiceClient.process_document(document)
+                print(ocr_response)
                 
                 if ocr_response:
                     # Create test results from OCR response

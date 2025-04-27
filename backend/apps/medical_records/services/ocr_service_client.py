@@ -2,8 +2,10 @@ import requests
 import json
 import logging
 from django.conf import settings
+from django.utils import timezone
+import datetime
 from ..models.lab_result import LabResult
-from ..models.test_parameters import TestType, ParameterDefinition
+from ..models.test_parameters import TestType, ParameterDefinition, TestResult, ParameterValue
 from .test_service import TestService
 
 logger = logging.getLogger(__name__)
@@ -35,19 +37,35 @@ class OCRServiceClient:
             # Check if document.file is a URL string (from Cloudinary) or a file object
             if isinstance(document.file, str) and (document.file.startswith('http://') or document.file.startswith('https://')):
                 # If it's a URL, use the Cloudinary URL endpoint
-                process_url = f"{ocr_service_url}/api/v1/process_cloudinary"
+                process_url = f"{ocr_service_url}/api/process_document"
                 
                 # Send request with the URL
-                payload = {"document_url": document.file}
+                # Extract file extension from URL
+                parsed_url = document.file.split('.')
+                file_extension = parsed_url[-1].lower() if len(parsed_url) > 1 else ""
+                
+                # Prepare document URL, converting PDF to JPG if needed
+                document_url = document.file
+                if file_extension == 'pdf':
+                    print("document is a pdf")
+                    # For Cloudinary URLs, replace PDF extension with JPG
+                    if 'cloudinary.com' in document_url:
+                        # Split URL at the file extension
+                        base_url = document_url.rsplit('.pdf', 1)[0]
+                        document_url = f"{base_url}.jpg"
+                        logger.info("Converting document URL from PDF to JPG format: %s", 
+                                   document_url)
+                else:
+                    # Keep other formats as they are
+                    logger.info("Using document with extension '%s' without conversion", 
+                               file_extension)
+                payload = {"document_url": document_url}
+                print(f"Payload: {json.dumps(payload)}")
+                print(f"sending document url to OCR service: {document.file}")
                 logger.info(f"Sending document URL to OCR service: {document.file}")
                 response = requests.post(process_url, json=payload)
             else:
-                # Original behavior for file objects
-                process_url = f"{ocr_service_url}/api/v1/process"
-                with document.file.open('rb') as file:
-                    files = {'file': (document.file.name, file)}
-                    logger.info(f"Sending document file to OCR service: {document.file.name}")
-                    response = requests.post(process_url, files=files)
+                print("no valid cloudinary url has been passed to the ocr_service")
                 
             if response.status_code != 200:
                 logger.error(f"OCR service returned {response.status_code}: {response.text}")
@@ -74,155 +92,184 @@ class OCRServiceClient:
             LabResult instance or None if failed
         """
         try:
-            # Extract basic lab info
-            test_date = ocr_response.get('test_date')
-            lab_name = ocr_response.get('lab_name', 'Unknown Lab')
+            # Log the OCR response for debugging
+            logger.info(f"Processing OCR response: {json.dumps(ocr_response)}")
+            
+            # Handle the case when the response includes tests array (transitional format)
+            if 'tests' in ocr_response and isinstance(ocr_response['tests'], list) and len(ocr_response['tests']) > 0:
+                # Extract the first test as our main test data
+                test_data = ocr_response['tests'][0]
+                
+                # Create a normalized structure similar to new format
+                if 'metadata' in test_data:
+                    metadata = test_data.get('metadata', {})
+                else:
+                    metadata = {
+                        'lab_name': ocr_response.get('lab_name', 'Unknown Lab'),
+                        'test_date': ocr_response.get('test_date'),
+                        'raw_text': ocr_response.get('raw_text', '')
+                    }
+                
+                # Get test type information
+                test_type_info = {
+                    'name': test_data.get('test_type', 'Unknown Test'),
+                    'code': test_data.get('metadata', {}).get('code', 'UNKNOWN'),
+                    'description': test_data.get('metadata', {}).get('description', ''),
+                    'category': test_data.get('metadata', {}).get('category', '')
+                }
+                
+                # Transform parameters from dict to list format
+                parameters_list = []
+                if 'parameters' in test_data and isinstance(test_data['parameters'], dict):
+                    for param_name, param_info in test_data['parameters'].items():
+                        if isinstance(param_info, dict):
+                            param_item = {
+                                'name': param_name,
+                                'code': param_info.get('code', param_name.upper().replace(' ', '_')),
+                                'unit': param_info.get('unit'),
+                                'data_type': param_info.get('data_type', 'numeric'),
+                                'value': param_info.get('value'),
+                                'is_abnormal': param_info.get('is_abnormal', False),
+                                'reference_range': param_info.get('normal_range', {})
+                            }
+                            parameters_list.append(param_item)
+                
+                # Create our normalized response
+                normalized_response = {
+                    'test_type': test_type_info,
+                    'parameters': parameters_list,
+                    'metadata': metadata
+                }
+                
+                # Use the normalized response for further processing
+                ocr_response = normalized_response
+                
+            # Extract metadata
+            metadata = ocr_response.get('metadata', {})
+            
+            # Handle test_date - use current date if not available
+            test_date = metadata.get('test_date')
+            if not test_date:
+                test_date = timezone.now().date()
+                logger.info(f"Test date not found in OCR response, using current date: {test_date}")
+                # Update metadata with the current date
+                metadata['test_date'] = str(test_date)
+            
+            lab_name = metadata.get('lab_name', 'Unknown Lab')
             
             # Create the LabResult
             lab_result = LabResult.objects.create(
                 user=user,
                 health_issue=health_issue,
-                test_name=f"Lab Report - {ocr_response.get('test_type', 'Multiple Tests')}",
+                test_name=f"Lab Report - {ocr_response.get('test_type', {}).get('name', 'Unknown Test')}",
                 test_date=test_date,
                 lab_name=lab_name,
-                result="See detailed results",
-                document=document
+                result="See detailed results"
             )
             
-            # Handle each test found in the OCR response
-            tests_created = []
+            # Get or create the test type
+            test_type_data = ocr_response.get('test_type', {})
+            test_type_code = test_type_data.get('code')
             
-            if 'tests' in ocr_response and isinstance(ocr_response['tests'], list):
-                for test_data in ocr_response['tests']:
-                    test_type_code = test_data.get('test_type')
-                    parameters_data = test_data.get('parameters', {})
-                    
-                    # Skip if test type is not recognized
-                    if not test_type_code or not TestType.objects.filter(code=test_type_code).exists():
-                        continue
-                    
-                    # Transform AI model format to TestService format
-                    # The AI model returns parameters in format:
-                    # {"parameter_name": {"value": "14.2", "unit": "g/dL", "normal_range": "12-16"}}
-                    # TestService expects: {"parameter_code": value}
-                    
-                    transformed_parameters = {}
-                    
-                    for param_name, param_data in parameters_data.items():
-                        # Try to find parameter definition by name or code
-                        param_def = None
-                        try:
-                            # First try to find by exact code match
-                            param_def = ParameterDefinition.objects.get(
-                                code__iexact=param_name,
-                                test_types__code=test_type_code
-                            )
-                        except ParameterDefinition.DoesNotExist:
-                            try:
-                                # Try by name match (case insensitive)
-                                param_def = ParameterDefinition.objects.filter(
-                                    name__icontains=param_name,
-                                    test_types__code=test_type_code
-                                ).first()
-                            except Exception:
-                                pass
+            if not test_type_code:
+                logger.error("Test type code is missing in OCR response")
+                lab_result.delete()
+                return None
+                
+            test_type, created = TestType.objects.get_or_create(
+                code=test_type_code,
+                defaults={
+                    'name': test_type_data.get('name', 'Unknown Test'),
+                    'description': test_type_data.get('description', ''),
+                    'category': test_type_data.get('category', '')
+                }
+            )
+            
+            # Create the test result
+            test_result = TestResult.objects.create(
+                lab_result=lab_result,
+                test_type=test_type,
+                metadata=metadata
+            )
+            
+            # Process each parameter
+            parameters = ocr_response.get('parameters', [])
+            if not parameters:
+                logger.error("No parameters found in OCR response")
+                test_result.delete()
+                lab_result.delete()
+                return None
+                
+            for param_data in parameters:
+                # Get or create parameter definition
+                param_code = param_data.get('code')
+                param_name = param_data.get('name')
+                
+                if not param_code or not param_name:
+                    logger.warning(f"Missing parameter code or name: {param_data}")
+                    continue
+                
+                try:
+                    # Ensure unit is never None - use empty string if missing or None
+                    unit = param_data.get('unit', '')
+                    if unit is None:
+                        unit = ''
                         
-                        # Extract the value from param_data
-                        if isinstance(param_data, dict) and 'value' in param_data:
-                            param_value = param_data['value']
-                            
-                            # Try to convert to float for numeric parameters
-                            if param_def and param_def.data_type == 'numeric':
-                                try:
-                                    param_value = float(param_value)
-                                except (ValueError, TypeError):
-                                    logger.warning(f"Could not convert {param_value} to float for {param_name}")
-                            
-                            # Add to transformed parameters using parameter code
-                            param_code = param_def.code if param_def else param_name
-                            transformed_parameters[param_code] = param_value
-                            
-                            # If parameter definition doesn't exist yet, create it
-                            if not param_def:
-                                try:
-                                    # Try to determine if numeric
-                                    try:
-                                        float(param_value)
-                                        data_type = 'numeric'
-                                    except (ValueError, TypeError):
-                                        data_type = 'text'
-                                    
-                                    # Get test type
-                                    test_type = TestType.objects.get(code=test_type_code)
-                                    
-                                    # Create new parameter definition
-                                    param_def = ParameterDefinition(
-                                        name=param_name,
-                                        code=param_name.upper().replace(' ', '_'),
-                                        unit=param_data.get('unit', ''),
-                                        data_type=data_type
-                                    )
-                                    param_def.save()
-                                    param_def.test_types.add(test_type)
-                                    
-                                    # Update code in transformed parameters
-                                    transformed_parameters[param_def.code] = param_value
-                                    del transformed_parameters[param_name]
-                                    
-                                    # If normal range provided, add to reference_range_json
-                                    if 'normal_range' in param_data:
-                                        # Try to parse range like "12-16" to min/max
-                                        try:
-                                            range_str = param_data['normal_range']
-                                            if '-' in range_str:
-                                                min_val, max_val = range_str.split('-', 1)
-                                                param_def.reference_range_json = {
-                                                    'min': float(min_val.strip()),
-                                                    'max': float(max_val.strip())
-                                                }
-                                                param_def.save()
-                                        except Exception as e:
-                                            logger.warning(f"Could not parse normal range: {e}")
-                                    
-                                except Exception as e:
-                                    logger.warning(f"Could not create parameter definition: {e}")
-                        else:
-                            # Handle simple value (not dict)
-                            transformed_parameters[param_name] = param_data
+                    param_def = ParameterDefinition.objects.filter(code=param_code).first()
+                    if param_def is None:
+                        param_def = ParameterDefinition.objects.create(
+                            name=param_name,
+                            code=param_code,
+                            unit=unit,
+                            data_type=param_data.get('data_type', 'numeric'),
+                            reference_range_json=param_data.get('reference_range', {})
+                        )
+                        param_def.test_types.add(test_type)
+                    elif test_type not in param_def.test_types.all():
+                        param_def.test_types.add(test_type)
                     
-                    # Create the test result with transformed parameters
-                    test_result = TestService.create_test_result(
-                        lab_result=lab_result,
-                        test_type_code=test_type_code,
-                        parameters=transformed_parameters
+                    # Create parameter value
+                    value = param_data.get('value')
+                    is_abnormal = param_data.get('is_abnormal', False)
+                    
+                    param_value = ParameterValue(
+                        test_result=test_result,
+                        parameter=param_def,
+                        is_abnormal=is_abnormal
                     )
-                    tests_created.append(test_result)
+                    
+                    # Set the appropriate value based on data type
+                    data_type = param_def.data_type
+                    if data_type == 'numeric' and value is not None:
+                        try:
+                            param_value.numeric_value = float(value)
+                        except (ValueError, TypeError):
+                            logger.warning(f"Could not convert {value} to float for {param_name}")
+                            param_value.text_value = str(value)
+                    elif data_type == 'boolean' and value is not None:
+                        if isinstance(value, bool):
+                            param_value.boolean_value = value
+                        else:
+                            param_value.boolean_value = str(value).lower() in ('true', 'yes', '1', 'positive')
+                    else:
+                        param_value.text_value = str(value) if value is not None else None
+                    
+                    param_value.save()
+                    logger.info(f"Saved parameter value: {param_name} = {value}")
+                    
+                except Exception as e:
+                    logger.warning(f"Error processing parameter {param_name}: {str(e)}")
+                    continue
             
-            # If we have specific CBC or URE data directly in the response (older OCR format)
-            elif 'cbc' in ocr_response:
-                parameters = ocr_response['cbc']
-                test_result = TestService.create_test_result(
-                    lab_result=lab_result,
-                    test_type_code='CBC',
-                    parameters=parameters
-                )
-                tests_created.append(test_result)
-            
-            elif 'ure' in ocr_response:
-                parameters = ocr_response['ure']
-                test_result = TestService.create_test_result(
-                    lab_result=lab_result,
-                    test_type_code='URE',
-                    parameters=parameters
-                )
-                tests_created.append(test_result)
-            
-            if tests_created:
+            # Check if we actually saved any parameters
+            if ParameterValue.objects.filter(test_result=test_result).count() > 0:
+                logger.info(f"Successfully created test result with {ParameterValue.objects.filter(test_result=test_result).count()} parameters")
                 return lab_result
             else:
-                # Clean up if no tests were created
+                # Clean up if no parameters were created
+                test_result.delete()
                 lab_result.delete()
-                logger.error("No valid test results found in OCR response")
+                logger.error("No valid parameter values created from OCR response")
                 return None
                 
         except Exception as e:
