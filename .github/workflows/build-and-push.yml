@@ -346,17 +346,7 @@ jobs:
               echo "❌ Deployment verification failed. The deployed image does not match the expected image."
               exit 1
             fi
-      
-      - name: Run Migrations
-        uses: azure/CLI@v1
-        with:
-          inlineScript: |
-            # Run migrations through the container app
-            az containerapp exec \
-              --name web-wizards-backend \
-              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --command "python manage.py migrate"
-            
+                  
       - name: Deployment Summary
         run: |
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
