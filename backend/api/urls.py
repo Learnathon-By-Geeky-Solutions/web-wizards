@@ -1,16 +1,18 @@
 # api/urls.py
-from django.urls import path
-from .views import DemoAPIView
-from apps.users import urls as users_urls
-from apps.medical_records import urls as medical_records_urls
-from apps.medications import urls as medications_urls
-from apps.clinicians import urls as clinicians_urls
-from django.urls import include
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from . import views
 
 urlpatterns = [
-    path('demo/', DemoAPIView.as_view(), name='demo-api'),
-    path('users/', include(users_urls)),
-    path('medical-records/', include(medical_records_urls)),
-    path('medications/', include(medications_urls)),
-    path('clinicians/', include(clinicians_urls)),
+    path('docs/', views.schema_view.with_ui('swagger', cache_timeout=0)),
+    path('redoc/', views.schema_view.with_ui('redoc', cache_timeout=0)),
+    
+    # App specific URLs
+    path('users/', include('apps.users.urls')),
+    path('medical-records/', include('apps.medical_records.urls')),
+    path('clinicians/', include('apps.clinicians.urls')),
+    path('appointments/', include('apps.appointments.urls')),
+    path('medications/', include('apps.medications.urls')),
+    path('news/', include('apps.news.urls')),
+    path('visualizations/', include('apps.visualizations.urls')),  # Add visualizations API
 ]

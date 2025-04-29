@@ -1,10 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, 
+  Legend, ResponsiveContainer, ReferenceLine, Area, AreaChart, Label
+} from 'recharts';
+import { format, parseISO } from 'date-fns';
 
 const CBCTestChart = () => {
-  // In a real implementation, this would be fetched from your API
+  // Mock data - In a real implementation, this would be fetched from your API
   const [cbcData, setCbcData] = useState({
     hasData: false,
-    results: [],
+    results: [
+      {
+        date: '2025-01-15',
+        hemoglobin: 13.8,
+        red_blood_cells: 4.9,
+        white_blood_cells: 7.2,
+        platelets: 245,
+        hematocrit: 41.3,
+        neutrophils_percent: 60,
+        lymphocytes_percent: 29,
+        monocytes_percent: 6,
+        eosinophils_percent: 4,
+        basophils_percent: 1,
+      },
+      {
+        date: '2025-02-20',
+        hemoglobin: 14.0,
+        red_blood_cells: 5.0,
+        white_blood_cells: 7.4,
+        platelets: 248,
+        hematocrit: 41.8,
+        neutrophils_percent: 61,
+        lymphocytes_percent: 28,
+        monocytes_percent: 6,
+        eosinophils_percent: 4,
+        basophils_percent: 1,
+      },
+      {
+        date: '2025-03-28',
+        hemoglobin: 14.2,
+        red_blood_cells: 5.1,
+        white_blood_cells: 7.6,
+        platelets: 250,
+        hematocrit: 42.1,
+        neutrophils_percent: 62,
+        lymphocytes_percent: 28,
+        monocytes_percent: 5,
+        eosinophils_percent: 4,
+        basophils_percent: 1,
+      }
+    ],
     latest: {
       date: '2025-03-28',
       hemoglobin: 14.2,
@@ -37,6 +82,24 @@ const CBCTestChart = () => {
     }));
   };
 
+  useEffect(() => {
+    // In a real implementation, this would fetch data from the API
+    // Example: 
+    // const fetchCBCData = async () => {
+    //   try {
+    //     const response = await fetch('/api/medical-records/cbc');
+    //     const data = await response.json();
+    //     setCbcData({ ...data, hasData: data.results.length > 0 });
+    //   } catch (error) {
+    //     console.error('Error fetching CBC data:', error);
+    //   }
+    // };
+    // fetchCBCData();
+    
+    // For demo purposes, just set hasData to true
+    setCbcData(prev => ({ ...prev, hasData: true }));
+  }, []);
+
   const metrics = [
     { id: 'hemoglobin', label: 'Hemoglobin (g/dL)' },
     { id: 'red_blood_cells', label: 'Red Blood Cells (10^6/μL)' },
@@ -50,6 +113,33 @@ const CBCTestChart = () => {
     if (value < referenceRange[0]) return 'text-blue-600';
     if (value > referenceRange[1]) return 'text-red-600';
     return 'text-green-600';
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      return format(parseISO(dateString), 'MMM d, yyyy');
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  // Custom tooltip for the chart
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white p-4 border rounded shadow-lg">
+          <p className="font-semibold">{formatDate(label)}</p>
+          <p className={getStatusColor(
+            data[selectedMetric], 
+            cbcData.reference[selectedMetric]
+          )}>
+            {metrics.find(m => m.id === selectedMetric).label}: {data[selectedMetric]}
+          </p>
+        </div>
+      );
+    }
+    return null;
   };
 
   if (!cbcData.hasData) {
@@ -75,7 +165,7 @@ const CBCTestChart = () => {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Complete Blood Count (CBC)</h2>
         <div className="text-sm text-gray-500">
-          Latest: {cbcData.latest.date}
+          Latest: {formatDate(cbcData.latest.date)}
         </div>
       </div>
 
@@ -121,16 +211,94 @@ const CBCTestChart = () => {
         </div>
       </div>
 
-      {/* Chart placeholder - in a real implementation, you would use a charting library */}
-      <div className="h-64 bg-gray-50 rounded-lg p-4 mb-4">
-        <div className="h-full flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-gray-400 mb-2">Trend Chart</div>
-            <div className="text-sm text-gray-500">
-              This would show a line chart of {selectedMetric} over time
-            </div>
-          </div>
-        </div>
+      {/* Chart implemented with Recharts */}
+      <div className="h-64 mb-4">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart
+            data={cbcData.results}
+            margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+            <XAxis 
+              dataKey="date" 
+              tickFormatter={formatDate}
+              tick={{ fontSize: 12 }}
+            />
+            <YAxis 
+              domain={cbcData.reference[selectedMetric] ? 
+                [
+                  Math.min(cbcData.reference[selectedMetric][0] * 0.8, Math.min(...cbcData.results.map(item => item[selectedMetric])) * 0.9),
+                  Math.max(cbcData.reference[selectedMetric][1] * 1.2, Math.max(...cbcData.results.map(item => item[selectedMetric])) * 1.1)
+                ] : 
+                'auto'
+              }
+              tick={{ fontSize: 12 }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend />
+            
+            {/* Reference range area */}
+            {cbcData.reference[selectedMetric] && (
+              <Area 
+                type="monotone" 
+                dataKey={() => cbcData.reference[selectedMetric][1]} 
+                stroke="none"
+                fill="#d1fae5" 
+                fillOpacity={0.3}
+                activeDot={false}
+                legendType="none"
+                stackId="1"
+              />
+            )}
+            
+            {cbcData.reference[selectedMetric] && (
+              <Area 
+                type="monotone" 
+                dataKey={() => cbcData.reference[selectedMetric][0]} 
+                stroke="none"
+                fill="#d1fae5" 
+                fillOpacity={0}
+                activeDot={false}
+                legendType="none"
+                stackId="1"
+                baseValue={cbcData.reference[selectedMetric][0]}
+              />
+            )}
+            
+            {/* The actual data line */}
+            <Line 
+              type="monotone" 
+              dataKey={selectedMetric} 
+              stroke="#0ea5e9" 
+              strokeWidth={2}
+              animationDuration={750}
+              dot={{ stroke: '#0ea5e9', strokeWidth: 2, fill: '#fff' }}
+              activeDot={{ r: 6, stroke: '#0ea5e9', strokeWidth: 2, fill: '#fff' }}
+              name={metrics.find(m => m.id === selectedMetric).label}
+            />
+            
+            {/* Reference lines for min and max normal values */}
+            {cbcData.reference[selectedMetric] && (
+              <ReferenceLine 
+                y={cbcData.reference[selectedMetric][0]} 
+                stroke="#10b981" 
+                strokeDasharray="3 3"
+              >
+                <Label value="Min" position="insideBottomLeft" fill="#10b981" fontSize={12} />
+              </ReferenceLine>
+            )}
+            
+            {cbcData.reference[selectedMetric] && (
+              <ReferenceLine 
+                y={cbcData.reference[selectedMetric][1]} 
+                stroke="#10b981" 
+                strokeDasharray="3 3" 
+              >
+                <Label value="Max" position="insideTopLeft" fill="#10b981" fontSize={12} />
+              </ReferenceLine>
+            )}
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
 
       {/* WBC Distribution - only shown when relevant */}

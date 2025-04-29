@@ -23,17 +23,14 @@ function Navbar() {
         </div>
 
         {/* Navigation Links */}
-        {/* <div className="hidden md:flex space-x-8">
-          <a href="#" className="text-green-800 hover:text-green-600">
-            For users
-          </a>
-          <a href="#" className="text-green-800 hover:text-green-600">
-            For clinics
-          </a>
-          <a href="#" className="text-green-800 hover:text-green-600">
+        <div className="hidden md:flex space-x-8">
+          <Link to="/" className="text-green-800 hover:text-green-600">
+            Home
+          </Link>
+          <Link to="/news" className="text-green-800 hover:text-green-600">
             News
-          </a>
-        </div> */}
+          </Link>
+        </div>
 
         {/* Login and Language */}
         <div className="flex items-center space-x-1 py-2 ml-[-10px]">

@@ -102,6 +102,7 @@ INSTALLED_APPS = [
     'apps.medications',      # Add medications app
     'apps.appointments',     # Add appointments app
     'apps.visualizations',   # Add visualizations app
+    'apps.news',             # News app with correct path
     # OAuth related
     'django.contrib.sites',
     'allauth',

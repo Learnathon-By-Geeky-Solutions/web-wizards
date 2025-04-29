@@ -29,6 +29,8 @@ def trigger_error(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
+    path('api/news/', include('apps.news.urls')),  # Add news app URLs
+    path('api/visualizations/', include('apps.visualizations.urls')),  # Add visualization app URLs
     # JWT Token endpoints
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

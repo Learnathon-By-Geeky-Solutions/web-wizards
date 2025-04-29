@@ -13,6 +13,7 @@ env:
   REGISTRY: ghcr.io
   ORGANIZATION: learnathon-by-geeky-solutions # using lowercase for Docker compatibility
   BACKEND_IMAGE: web-wizards-backend
+  OCR_SERVICE_IMAGE: web-wizards-ocr-service
   AZURE_RESOURCE_GROUP: web-wizards-rg
   MYSQL_SERVER_NAME: webwizards-mysql
   MYSQL_DATABASE_NAME: webwizardsdb
@@ -58,6 +59,18 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          
+      - name: Build and push OCR service image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./ocr_service
+          file: ./ocr_service/Dockerfile.prod
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:${{ steps.set-tag.outputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Image Build Summary
         run: |
@@ -65,6 +78,7 @@ jobs:
           echo "| Image | Registry | Tags | Status |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend | ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }} | ${{ steps.set-tag.outputs.image_tag }}, latest | ✅ Built & Pushed |" >> $GITHUB_STEP_SUMMARY
+          echo "| OCR Service | ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }} | ${{ steps.set-tag.outputs.image_tag }}, latest | ✅ Built & Pushed |" >> $GITHUB_STEP_SUMMARY
           
   deploy-to-azure:
     name: Deploy to Azure

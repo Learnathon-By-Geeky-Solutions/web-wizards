@@ -31,6 +31,9 @@ const Appointments = lazy(() => import('./pages/Appointments'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+// Import News pages
+const News = lazy(() => import('./pages/News'));
+const NewsDetail = lazy(() => import('./pages/NewsDetail'));
 
 // Updated imports for Medical Record pages
 const MedicalRecordLayout = lazy(() => import('./layouts/MedicalRecordLayout'));
@@ -88,6 +91,23 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <Home />,
+  },
+  // Add News routes
+  {
+    path: "/news",
+    element: (
+      <Suspense fallback={<PageLoading />}>
+        <News />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/news/:slug",
+    element: (
+      <Suspense fallback={<PageLoading />}>
+        <NewsDetail />
+      </Suspense>
+    ),
   },
   {
     path: "/registration",
