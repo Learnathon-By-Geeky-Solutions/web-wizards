@@ -1,139 +1,212 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
-import ParameterLineChart from './ParameterLineChart';
-import TextParameterDisplay from './TextParameterDisplay';
+import { format, parseISO } from 'date-fns';
+import ParameterVisualizer from './ParameterVisualizer';
 
-const TestTypePanel = ({ testType, parameters, initialExpandedState = false }) => {
+const TestTypePanel = ({ 
+  testType,
+  parameters = [], 
+  initialExpandedState = false
+}) => {
   const [isExpanded, setIsExpanded] = useState(initialExpandedState);
+  const [selectedDate, setSelectedDate] = useState(null);
   
-  // Group parameters by data type for organization
-  const numericParameters = parameters.filter(p => p.parameter_data_type === 'numeric');
-  const textParameters = parameters.filter(p => p.parameter_data_type === 'text');
-  const otherParameters = parameters.filter(
-    p => !['numeric', 'text'].includes(p.parameter_data_type)
+  // Find all unique dates from all parameters
+  const allDates = React.useMemo(() => {
+    const dates = new Set();
+    parameters.forEach(param => {
+      param.data_points.forEach(point => {
+        dates.add(point.date);
+      });
+    });
+    return [...dates].sort((a, b) => new Date(b) - new Date(a));
+  }, [parameters]);
+  
+  // Set initial selected date to the most recent one
+  useEffect(() => {
+    if (allDates.length > 0 && !selectedDate) {
+      setSelectedDate(allDates[0]);
+    }
+  }, [allDates, selectedDate]);
+  
+  // Format a date string
+  const formatDate = (dateString) => {
+    try {
+      return format(parseISO(dateString), 'MMM d, yyyy');
+    } catch (e) {
+      return dateString;
+    }
+  };
+  
+  // Get latest values for summary view
+  const getKeyParameters = () => {
+    // Return up to 3 numeric parameters for the summary
+    return parameters
+      .filter(param => param.data_type === 'numeric')
+      .slice(0, 3)
+      .map(param => {
+        const latestPoint = param.data_points.sort(
+          (a, b) => new Date(b.date) - new Date(a.date)
+        )[0];
+        
+        const isAbnormal = latestPoint.is_abnormal;
+        
+        return {
+          name: param.parameter_name,
+          value: latestPoint.value,
+          unit: param.parameter_unit,
+          isAbnormal,
+          date: latestPoint.date
+        };
+      });
+  };
+  
+  // Group parameters by type for better organization
+  const groupedParameters = React.useMemo(() => {
+    return parameters.reduce((acc, param) => {
+      const dataType = param.data_type || 'numeric';
+      if (!acc[dataType]) {
+        acc[dataType] = [];
+      }
+      acc[dataType].push(param);
+      return acc;
+    }, {});
+  }, [parameters]);
+
+  // Check if any parameter has abnormal values
+  const hasAbnormalValues = parameters.some(param => 
+    param.data_points.some(point => point.is_abnormal)
   );
   
   return (
-    <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
-      {/* Panel header */}
+    <div className="border rounded-lg overflow-hidden">
       <div 
-        className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
+        className={`p-4 ${hasAbnormalValues ? 'bg-red-50' : 'bg-gray-50'} cursor-pointer flex justify-between items-center`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div>
-          <h3 className="font-medium text-lg">
-            {testType.name}
-          </h3>
-          <p className="text-sm text-gray-600">
-            {testType.code} {testType.category && `• ${testType.category}`}
-          </p>
+          <h3 className="font-medium text-lg">{testType.name}</h3>
+          <div className="text-sm text-gray-500">{testType.description}</div>
+          
+          {!isExpanded && (
+            <div className="mt-2 flex flex-wrap gap-4">
+              {getKeyParameters().map((param, index) => (
+                <div key={index} className="flex items-center">
+                  <span className="text-gray-600">{param.name}:</span>
+                  <span 
+                    className={`ml-1 font-semibold ${param.isAbnormal ? 'text-red-600' : 'text-gray-800'}`}
+                  >
+                    {param.value} {param.unit}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <button className="p-2 hover:bg-gray-100 rounded-full">
-          {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
-        </button>
+        
+        <div className="flex items-center">
+          {hasAbnormalValues && (
+            <span className="mr-2 px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+              Abnormal
+            </span>
+          )}
+          <svg 
+            className={`w-5 h-5 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`} 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
       </div>
       
-      {/* Panel content - only shown when expanded */}
       {isExpanded && (
-        <div className="border-t p-4">
-          {testType.description && (
-            <p className="text-gray-600 mb-4 text-sm">{testType.description}</p>
-          )}
-          
-          {/* Numeric parameters with charts */}
-          {numericParameters.length > 0 && (
-            <div className="space-y-6">
-              {numericParameters.map((param) => (
-                <div key={param.parameter} className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2 text-gray-700">
-                    {param.parameter_name}
-                    {param.parameter_unit && (
-                      <span className="text-gray-500 text-sm ml-1">
-                        ({param.parameter_unit})
-                      </span>
-                    )}
-                  </h4>
-                  
-                  <div className="h-64 bg-white rounded p-2 border">
-                    <ParameterLineChart 
-                      dataPoints={param.data_points}
-                      parameterUnit={param.parameter_unit}
-                      referenceRange={param.reference_range}
-                    />
-                  </div>
-                </div>
-              ))}
+        <div className="p-4">
+          {/* Date selector */}
+          {allDates.length > 1 && (
+            <div className="mb-6">
+              <label className="block mb-2 text-sm font-medium text-gray-700">
+                Select Test Date
+              </label>
+              <select 
+                className="border rounded px-3 py-2 w-full"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              >
+                {allDates.map(date => (
+                  <option key={date} value={date}>
+                    {formatDate(date)}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
           
-          {/* Text parameters */}
-          {textParameters.length > 0 && (
-            <div className="space-y-6 mt-6">
-              <h4 className="font-medium text-gray-700 border-b pb-2">
-                Text Reports
-              </h4>
-              
-              {textParameters.map((param) => (
-                <div key={param.parameter} className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">
-                    {param.parameter_name}
-                  </h4>
-                  
-                  {param.data_points && param.data_points.length > 0 ? (
-                    <TextParameterDisplay
-                      parameterId={param.parameter}
-                      testResultId={param.data_points[0].test_result_id}
-                      parameterName={param.parameter_name}
-                      textValue={param.data_points[0].value}
-                      date={param.data_points[0].date}
-                      showHistory={param.data_points.length > 1}
+          {/* Parameters section */}
+          <div className="space-y-8">
+            {/* Numeric parameters */}
+            {groupedParameters.numeric && groupedParameters.numeric.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-4">Measurements</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {groupedParameters.numeric.map(param => (
+                    <ParameterVisualizer
+                      key={param.parameter_code}
+                      parameter={param}
+                      selectedDate={selectedDate}
                     />
-                  ) : (
-                    <div className="bg-white p-4 border rounded text-center text-gray-500">
-                      No report data available
-                    </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-          
-          {/* Other parameters */}
-          {otherParameters.length > 0 && (
-            <div className="mt-6">
-              <h4 className="font-medium text-gray-700 mb-2 border-b pb-2">
-                Other Parameters
-              </h4>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {otherParameters.map((param) => (
-                  <div key={param.parameter} className="bg-gray-50 p-4 rounded-lg">
-                    <h5 className="font-medium">
-                      {param.parameter_name}
-                      {param.parameter_unit && (
-                        <span className="text-gray-500 text-sm ml-1">
-                          ({param.parameter_unit})
-                        </span>
-                      )}
-                    </h5>
-                    
-                    <p className="text-sm text-gray-500 mt-1">
-                      {param.parameter_data_type === 'boolean' ? 'Yes/No value' : 
-                       param.parameter_data_type === 'categorical' ? 'Category selection' :
-                       'Custom data format'}
-                    </p>
-                  </div>
+              </div>
+            )}
+            
+            {/* Text parameters */}
+            {groupedParameters.text && groupedParameters.text.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-4">Reports</h4>
+                {groupedParameters.text.map(param => (
+                  <ParameterVisualizer 
+                    key={param.parameter_code}
+                    parameter={param}
+                    selectedDate={selectedDate}
+                  />
                 ))}
               </div>
-            </div>
-          )}
-          
-          {parameters.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No parameters available for this test type
-            </div>
-          )}
+            )}
+            
+            {/* Boolean parameters */}
+            {groupedParameters.boolean && groupedParameters.boolean.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-4">Yes/No Parameters</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {groupedParameters.boolean.map(param => (
+                    <ParameterVisualizer 
+                      key={param.parameter_code}
+                      parameter={param}
+                      selectedDate={selectedDate}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Categorical parameters */}
+            {groupedParameters.categorical && groupedParameters.categorical.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-4">Categorical Parameters</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {groupedParameters.categorical.map(param => (
+                    <ParameterVisualizer 
+                      key={param.parameter_code}
+                      parameter={param}
+                      selectedDate={selectedDate}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -150,15 +223,20 @@ TestTypePanel.propTypes = {
   }).isRequired,
   parameters: PropTypes.arrayOf(
     PropTypes.shape({
-      parameter: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       parameter_name: PropTypes.string.isRequired,
-      parameter_code: PropTypes.string,
+      parameter_code: PropTypes.string.isRequired,
       parameter_unit: PropTypes.string,
-      parameter_data_type: PropTypes.string,
+      data_type: PropTypes.string,
       reference_range: PropTypes.object,
-      data_points: PropTypes.array
+      data_points: PropTypes.arrayOf(
+        PropTypes.shape({
+          date: PropTypes.string.isRequired,
+          value: PropTypes.any.isRequired,
+          is_abnormal: PropTypes.bool
+        })
+      ).isRequired
     })
-  ).isRequired,
+  ),
   initialExpandedState: PropTypes.bool
 };
 
