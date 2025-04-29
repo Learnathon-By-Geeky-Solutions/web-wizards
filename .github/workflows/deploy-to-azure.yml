@@ -143,8 +143,10 @@ jobs:
           inlineScript: |
             echo "Updating OCR service container app with image tag: ${{ steps.set-image-tag.outputs.image_tag }}"
             
-            # Check if container app exists, create if not exists
+            # Check if container app exists with better error handling
+            echo "Checking if OCR service container app exists..."
             EXISTS=$(az containerapp show --name ocr-service --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query name 2>/dev/null || echo "false")
+            echo "Container app exists check result: $EXISTS"
             
             if [ "$EXISTS" == "false" ]; then
               echo "Creating new OCR service container app"
@@ -155,7 +157,10 @@ jobs:
                 --image ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:${{ steps.set-image-tag.outputs.image_tag }} \
                 --target-port 8000 \
                 --ingress external \
-                --query properties.configuration.ingress.fqdn
+                --cpu 0.5 \
+                --memory 1.0Gi \
+                --min-replicas 1 \
+                --max-replicas 3
             else
               echo "Updating existing OCR service container app"
               az containerapp update \
@@ -165,6 +170,7 @@ jobs:
             fi
             
             # Update environment variables for OCR service
+            echo "Updating OCR service environment variables..."
             az containerapp update \
               --name ocr-service \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
@@ -177,6 +183,8 @@ jobs:
                 GOOGLE_MODEL=${{ steps.extract-secrets.outputs.google_model }} \
                 USE_AI_PROCESSING=True \
                 PORT=8000
+            
+            echo "OCR service container app update completed successfully"
       
       - name: Get Backend URL
         id: get-backend-url
