@@ -17,6 +17,7 @@ env:
   AZURE_RESOURCE_GROUP: web-wizards-rg
   MYSQL_SERVER_NAME: webwizards-mysql
   MYSQL_DATABASE_NAME: webwizardsdb
+  CONTAINER_ENV_NAME: web-wizards-env
 
 jobs:
   build-and-push:
@@ -112,6 +113,11 @@ jobs:
           EMAIL_PASSWORD=$(echo $APP_SECRETS | jq -r '.EMAIL_HOST_PASSWORD')
           SENTRY_DSN_VAL=$(echo $APP_SECRETS | jq -r '.SENTRY_DSN')
           CORS_ORIGIN_VAL=$(echo $APP_SECRETS | jq -r '.CORS_ORIGIN')
+          OPENAI_API_KEY=$(echo $APP_SECRETS | jq -r '.OPENAI_API_KEY')
+          GEMINI_API_KEY=$(echo $APP_SECRETS | jq -r '.GEMINI_API_KEY')
+          GOOGLE_API_KEY=$(echo $APP_SECRETS | jq -r '.GOOGLE_API_KEY')
+          GEMINI_MODEL=$(echo $APP_SECRETS | jq -r '.GEMINI_MODEL')
+          GOOGLE_MODEL=$(echo $APP_SECRETS | jq -r '.GOOGLE_MODEL')
           
           # Set output variables
           echo "mysql_username=$MYSQL_USERNAME" >> $GITHUB_OUTPUT
@@ -124,6 +130,19 @@ jobs:
           echo "email_password=$EMAIL_PASSWORD" >> $GITHUB_OUTPUT
           echo "sentry_dsn=$SENTRY_DSN_VAL" >> $GITHUB_OUTPUT
           echo "cors_origin=$CORS_ORIGIN_VAL" >> $GITHUB_OUTPUT
+          echo "openai_api_key=$OPENAI_API_KEY" >> $GITHUB_OUTPUT
+          echo "gemini_api_key=$GEMINI_API_KEY" >> $GITHUB_OUTPUT
+          echo "google_api_key=$GOOGLE_API_KEY" >> $GITHUB_OUTPUT
+          echo "gemini_model=$GEMINI_MODEL" >> $GITHUB_OUTPUT
+          echo "google_model=$GOOGLE_MODEL" >> $GITHUB_OUTPUT
+      
+      - name: Debug Info
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "GitHub ref: ${{ github.ref }}"
+          echo "Image tag to deploy: ${{ needs.build-and-push.outputs.image_tag }}"
+          echo "Full backend image URL: ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ needs.build-and-push.outputs.image_tag }}"
+          echo "Full OCR service image URL: ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:${{ needs.build-and-push.outputs.image_tag }}"
       
       - name: Update Backend Container App
         uses: azure/CLI@v1
@@ -197,16 +216,99 @@ jobs:
               "DEFAULT_FROM_EMAIL=AmarHealth <${{ steps.extract-secrets.outputs.email_user }}>" \
               "DJANGO_LOG_LEVEL=INFO"
       
+      # Debug before OCR service step
+      - name: Debug Before OCR Service
+        run: |
+          echo "==== DEBUG INFO BEFORE OCR SERVICE STEP ===="
+          echo "Current branch: ${{ github.ref }}"
+          echo "Event name: ${{ github.event_name }}"
+          echo "About to execute OCR service steps"
+      
+      - name: Update OCR Service Container App
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            echo "Updating OCR service container app with image tag: ${{ needs.build-and-push.outputs.image_tag }}"
+            
+            # Check if container app exists with better error handling
+            echo "Checking if OCR service container app exists..."
+            EXISTS=$(az containerapp show --name ocr-service --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query name 2>/dev/null || echo "false")
+            echo "Container app exists check result: $EXISTS"
+            
+            if [ "$EXISTS" == "false" ]; then
+              echo "Creating new OCR service container app"
+              az containerapp create \
+                --name ocr-service \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --environment ${{ env.CONTAINER_ENV_NAME }} \
+                --image ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:${{ needs.build-and-push.outputs.image_tag }} \
+                --target-port 8000 \
+                --ingress external \
+                --cpu 0.5 \
+                --memory 1.0Gi \
+                --min-replicas 1 \
+                --max-replicas 3 || echo "Error creating OCR service container app"
+            else
+              echo "Updating existing OCR service container app"
+              az containerapp update \
+                --name ocr-service \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --image ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:${{ needs.build-and-push.outputs.image_tag }} || echo "Error updating OCR service container app"
+            fi
+            
+            # Update environment variables for OCR service
+            echo "Updating OCR service environment variables..."
+            az containerapp update \
+              --name ocr-service \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --set-env-vars \
+                DEBUG=False \
+                OPENAI_API_KEY=${{ steps.extract-secrets.outputs.openai_api_key }} \
+                GEMINI_API_KEY=${{ steps.extract-secrets.outputs.gemini_api_key }} \
+                GEMINI_MODEL=${{ steps.extract-secrets.outputs.gemini_model }} \
+                GOOGLE_API_KEY=${{ steps.extract-secrets.outputs.google_api_key }} \
+                GOOGLE_MODEL=${{ steps.extract-secrets.outputs.google_model }} \
+                USE_AI_PROCESSING=True \
+                PORT=8000 || echo "Error updating OCR service environment variables"
+            
+            echo "OCR service container app update completed successfully"
+      
+      # Debug after OCR service step
+      - name: Debug After OCR Service
+        run: |
+          echo "==== DEBUG INFO AFTER OCR SERVICE STEP ===="
+          echo "OCR service step completed"
+          echo "Moving to next steps"
+          
+      - name: Get OCR Service URL
+        id: get-ocr-url
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            OCR_URL=$(az containerapp show \
+              --name ocr-service \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --query properties.configuration.ingress.fqdn \
+              --output tsv)
+            
+            echo "ocr_url=https://$OCR_URL" >> $GITHUB_OUTPUT
+            echo "OCR Service URL: https://$OCR_URL"
+      
       - name: Restart Container App
         uses: azure/CLI@v1
         with:
           inlineScript: |
-            # Create a new revision to restart the app
+            # Create a new revision to restart the backend app
             az containerapp revision copy \
               --name web-wizards-backend \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }}
             
-            echo "Container app restarted with a new revision"
+            # Create a new revision to restart the OCR service app
+            az containerapp revision copy \
+              --name ocr-service \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }}
+            
+            echo "Container apps restarted with new revisions"
       
       - name: Get Backend URL
         id: get-url
@@ -244,6 +346,16 @@ jobs:
               echo "❌ Deployment verification failed. The deployed image does not match the expected image."
               exit 1
             fi
+      
+      - name: Run Migrations
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            # Run migrations through the container app
+            az containerapp exec \
+              --name web-wizards-backend \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --command "python manage.py migrate"
             
       - name: Deployment Summary
         run: |
@@ -252,4 +364,8 @@ jobs:
           echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend API | ${{ steps.get-url.outputs.backend_url }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Admin Panel | ${{ steps.get-url.outputs.backend_url }}/admin/ |" >> $GITHUB_STEP_SUMMARY
-          echo "| Image Deployed | ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ needs.build-and-push.outputs.image_tag }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| OCR Service | ${{ steps.get-ocr-url.outputs.ocr_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| OCR API Docs | ${{ steps.get-ocr-url.outputs.ocr_url }}/docs/ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Images Deployed |" >> $GITHUB_STEP_SUMMARY
+          echo "| - Backend: ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ needs.build-and-push.outputs.image_tag }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| - OCR Service: ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:${{ needs.build-and-push.outputs.image_tag }} |" >> $GITHUB_STEP_SUMMARY
