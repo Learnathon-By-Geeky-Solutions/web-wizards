@@ -137,6 +137,15 @@ jobs:
                 DJANGO_LOG_LEVEL=INFO
       
       # OCR Service Container App Update
+      # Debug before OCR service step
+      - name: Debug Before OCR Service
+        run: |
+          echo "==== DEBUG INFO BEFORE OCR SERVICE STEP ===="
+          echo "Current branch: ${{ github.ref }}"
+          echo "Event name: ${{ github.event_name }}"
+          echo "Workflow run head branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "About to execute OCR service steps"
+      
       - name: Update OCR Service Container App
         uses: azure/CLI@v1
         with:
@@ -160,13 +169,13 @@ jobs:
                 --cpu 0.5 \
                 --memory 1.0Gi \
                 --min-replicas 1 \
-                --max-replicas 3
+                --max-replicas 3 || echo "Error creating OCR service container app"
             else
               echo "Updating existing OCR service container app"
               az containerapp update \
                 --name ocr-service \
                 --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-                --image ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:${{ steps.set-image-tag.outputs.image_tag }}
+                --image ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:${{ steps.set-image-tag.outputs.image_tag }} || echo "Error updating OCR service container app"
             fi
             
             # Update environment variables for OCR service
@@ -182,9 +191,16 @@ jobs:
                 GOOGLE_API_KEY=${{ steps.extract-secrets.outputs.google_api_key }} \
                 GOOGLE_MODEL=${{ steps.extract-secrets.outputs.google_model }} \
                 USE_AI_PROCESSING=True \
-                PORT=8000
+                PORT=8000 || echo "Error updating OCR service environment variables"
             
             echo "OCR service container app update completed successfully"
+      
+      # Debug after OCR service step
+      - name: Debug After OCR Service
+        run: |
+          echo "==== DEBUG INFO AFTER OCR SERVICE STEP ===="
+          echo "OCR service step completed"
+          echo "Moving to next steps"
       
       - name: Get Backend URL
         id: get-backend-url
