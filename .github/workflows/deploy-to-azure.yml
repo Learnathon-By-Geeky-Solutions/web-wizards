@@ -43,7 +43,7 @@ jobs:
           fi
           echo "Using image tag: $IMAGE_TAG"
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-      
+          
       - name: Extract secrets from JSON
         id: extract-secrets
         run: |
