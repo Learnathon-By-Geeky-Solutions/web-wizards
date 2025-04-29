@@ -15,6 +15,7 @@ env:
   REGISTRY: ghcr.io
   ORGANIZATION: learnathon-by-geeky-solutions
   BACKEND_IMAGE: web-wizards-backend
+  OCR_SERVICE_IMAGE: web-wizards-ocr-service
   MYSQL_SERVER_NAME: webwizards-mysql
   MYSQL_DATABASE_NAME: webwizardsdb
   DATABASE_PORT: 3306
@@ -42,7 +43,7 @@ jobs:
           fi
           echo "Using image tag: $IMAGE_TAG"
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-      
+          
       - name: Extract secrets from JSON
         id: extract-secrets
         run: |
@@ -123,7 +124,7 @@ jobs:
                 EMAIL_HOST_PASSWORD=${{ steps.extract-secrets.outputs.email_password }} \
                 DEFAULT_FROM_EMAIL="AmarHealth <${{ steps.extract-secrets.outputs.email_user }}>" \
                 DJANGO_LOG_LEVEL=INFO
-      
+          
       - name: Get Backend URL
         id: get-url
         uses: azure/CLI@v1
@@ -137,6 +138,32 @@ jobs:
             
             echo "backend_url=https://$BACKEND_URL" >> $GITHUB_OUTPUT
             echo "Backend URL: https://$BACKEND_URL"
+      
+      - name: Update OCR Service Container App
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            echo "Updating OCR service container app with image tag: ${{ steps.set-image-tag.outputs.image_tag }}"
+            
+            # Update existing OCR service container app with new image
+            az containerapp update \
+              --name ocr-service \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --image ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:${{ steps.set-image-tag.outputs.image_tag }}
+      
+      - name: Get OCR Service URL
+        id: get-ocr-url
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            OCR_URL=$(az containerapp show \
+              --name ocr-service \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --query properties.configuration.ingress.fqdn \
+              --output tsv)
+            
+            echo "ocr_url=https://$OCR_URL" >> $GITHUB_OUTPUT
+            echo "OCR Service URL: https://$OCR_URL"
       
       - name: Run Migrations
         uses: azure/CLI@v1
@@ -166,4 +193,6 @@ jobs:
           echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend API | ${{ steps.get-url.outputs.backend_url }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Admin Panel | ${{ steps.get-url.outputs.backend_url }}/admin/ |" >> $GITHUB_STEP_SUMMARY
-          echo "| Image Deployed | ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ steps.set-image-tag.outputs.image_tag }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| OCR Service | ${{ steps.get-ocr-url.outputs.ocr_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Image | ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ steps.set-image-tag.outputs.image_tag }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| OCR Service Image | ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:${{ steps.set-image-tag.outputs.image_tag }} |" >> $GITHUB_STEP_SUMMARY

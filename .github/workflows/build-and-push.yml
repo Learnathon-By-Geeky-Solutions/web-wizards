@@ -13,6 +13,7 @@ env:
   REGISTRY: ghcr.io
   ORGANIZATION: learnathon-by-geeky-solutions # using lowercase for Docker compatibility
   BACKEND_IMAGE: web-wizards-backend
+  OCR_SERVICE_IMAGE: web-wizards-ocr-service
   AZURE_RESOURCE_GROUP: web-wizards-rg
   MYSQL_SERVER_NAME: webwizards-mysql
   MYSQL_DATABASE_NAME: webwizardsdb
@@ -56,6 +57,18 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ steps.set-tag.outputs.image_tag }}
             ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+      - name: Build and push OCR service image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./ocr_service
+          file: ./ocr_service/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:${{ steps.set-tag.outputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
