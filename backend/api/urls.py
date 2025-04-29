@@ -11,7 +11,7 @@ urlpatterns = [
     path('users/', include('apps.users.urls')),
     path('medical-records/', include('apps.medical_records.urls')),
     path('clinicians/', include('apps.clinicians.urls')),
-    path('appointments/', include('apps.appointments.urls')),
+    # path('appointments/', include('apps.appointments.urls')),  # Commented out - module not found
     path('medications/', include('apps.medications.urls')),
     path('news/', include('apps.news.urls')),
     path('visualizations/', include('apps.visualizations.urls')),  # Add visualizations API
