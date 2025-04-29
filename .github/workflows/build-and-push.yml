@@ -256,6 +256,15 @@ jobs:
                 --image ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:${{ needs.build-and-push.outputs.image_tag }} || echo "Error updating OCR service container app"
             fi
             
+            # Force the container app to use port 8000 for ingress
+            echo "Updating OCR service container app ingress settings..."
+            az containerapp ingress update \
+              --name ocr-service \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --target-port 8000 \
+              --external \
+              --allow-insecure false || echo "Error updating OCR service ingress settings"
+            
             # Update environment variables for OCR service
             echo "Updating OCR service environment variables..."
             az containerapp update \
