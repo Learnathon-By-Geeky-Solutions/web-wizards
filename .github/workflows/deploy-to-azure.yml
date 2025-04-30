@@ -1,13 +1,21 @@
 name: Deploy to Azure Container Apps
 
 on:
-  repository_dispatch:
-    types: [trigger-deployment]
   workflow_run:
     workflows: ["Build and Push Docker Images"]
     types: [completed]
-    branches: [main, test, ci/cd-pipeline]  # Updated to include all branches
+    branches: [main, test, ci/cd-pipeline]
   workflow_dispatch:  # Allow manual triggering
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (default: latest)'
+        required: false
+        default: 'latest'
+        type: string
+
+permissions:
+  contents: read
+  actions: read  # Required to read workflow run information
 
 env:
   AZURE_RESOURCE_GROUP: web-wizards-rg
@@ -24,30 +32,63 @@ env:
 jobs:
   deploy-container-apps:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch' || (github.event.workflow_run.conclusion == 'success' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'test' || github.event.workflow_run.head_branch == 'ci/cd-pipeline')) }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
       
-      - name: Set image tag
-        id: set-image-tag
+      - name: Set image tag from workflow dispatch
+        if: github.event_name == 'workflow_dispatch'
+        id: set-tag-dispatch
         run: |
-          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
-            IMAGE_TAG="${{ github.event.client_payload.image_tag }}"
+          IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "Using image tag from workflow dispatch: $IMAGE_TAG"
+
+      - name: Get triggering workflow artifact
+        if: github.event_name == 'workflow_run'
+        id: workflow-artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: ${{ github.event.workflow_run.workflow_id }}
+          run_id: ${{ github.event.workflow_run.id }}
+          name: image_tag
+          path: /tmp/workflow-artifacts
+          check_artifacts: false
+          search_artifacts: true
+          
+      - name: Set image tag from workflow run
+        if: github.event_name == 'workflow_run'
+        id: set-tag-workflow
+        run: |
+          if [ -f "/tmp/workflow-artifacts/image_tag.txt" ]; then
+            IMAGE_TAG=$(cat /tmp/workflow-artifacts/image_tag.txt)
           else
-            # Default to latest if not specified
             IMAGE_TAG="latest"
           fi
-          echo "Using image tag: $IMAGE_TAG"
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "Using image tag from workflow run: $IMAGE_TAG"
+      
+      - name: Combine image tags
+        id: set-image-tag
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "image_tag=${{ steps.set-tag-dispatch.outputs.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "image_tag=${{ steps.set-tag-workflow.outputs.image_tag }}" >> $GITHUB_OUTPUT
+          fi
       
       - name: Debug Info
         run: |
           echo "Event name: ${{ github.event_name }}"
           echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Workflow run id: ${{ github.event.workflow_run.id }}"
           echo "Head branch: ${{ github.event.workflow_run.head_branch }}"
           echo "Image tag to deploy: ${{ steps.set-image-tag.outputs.image_tag }}"
           echo "Full backend image URL: ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ steps.set-image-tag.outputs.image_tag }}"
@@ -67,15 +108,6 @@ jobs:
               --image ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ steps.set-image-tag.outputs.image_tag }}
       
       # OCR Service Container App Update
-      # Debug before OCR service step
-      - name: Debug Before OCR Service
-        run: |
-          echo "==== DEBUG INFO BEFORE OCR SERVICE STEP ===="
-          echo "Current branch: ${{ github.ref }}"
-          echo "Event name: ${{ github.event_name }}"
-          echo "Workflow run head branch: ${{ github.event.workflow_run.head_branch }}"
-          echo "About to execute OCR service steps"
-      
       - name: Update OCR Service Container App
         uses: azure/CLI@v1
         with:
@@ -109,13 +141,6 @@ jobs:
             fi
             
             echo "OCR service container app update completed successfully"
-      
-      # Debug after OCR service step
-      - name: Debug After OCR Service
-        run: |
-          echo "==== DEBUG INFO AFTER OCR SERVICE STEP ===="
-          echo "OCR service step completed"
-          echo "Moving to next steps"
       
       - name: Get Backend URL
         id: get-backend-url

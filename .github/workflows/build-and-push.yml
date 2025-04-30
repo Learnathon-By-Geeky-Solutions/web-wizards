@@ -69,6 +69,19 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Create image tag artifact
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "${{ steps.set-tag.outputs.image_tag }}" > image_tag.txt
+          
+      - name: Upload image tag artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v3
+        with:
+          name: image_tag
+          path: image_tag.txt
+          retention-days: 1
+
       - name: Image Build Summary
         run: |
           echo "## Image Build Summary" >> $GITHUB_STEP_SUMMARY
@@ -77,7 +90,6 @@ jobs:
           echo "| Backend | ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }} | ${{ steps.set-tag.outputs.image_tag }}, latest | ✅ Built & Pushed |" >> $GITHUB_STEP_SUMMARY
           echo "| OCR Service | ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }} | ${{ steps.set-tag.outputs.image_tag }}, latest | ✅ Built & Pushed |" >> $GITHUB_STEP_SUMMARY
           
-      # Notify workflow run id for deploy-to-azure workflow to use
       - name: Add workflow run ID to step summary
         run: |
           echo "Workflow Run ID: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
