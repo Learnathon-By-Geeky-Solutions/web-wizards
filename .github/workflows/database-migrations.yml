@@ -133,15 +133,7 @@ jobs:
               --registry-username ${{ github.actor }} \
               --registry-password ${{ secrets.GHCR_PAT }} \
               --restart-policy Never \
-              --command-line "python manage.py migrate --noinput" \
-              --environment-variables \
-                DATABASE_HOST=${{ env.MYSQL_SERVER_NAME }}.mysql.database.azure.com \
-                DATABASE_NAME=${{ env.MYSQL_DATABASE_NAME }} \
-                DATABASE_USER=${{ secrets.MYSQL_ADMIN_USERNAME }} \
-                DATABASE_PASSWORD=${{ secrets.MYSQL_ADMIN_PASSWORD }} \
-                SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }} \
-                DEBUG=False \
-                ENVIRONMENT=production
+              --command-line "python manage.py migrate --noinput"
             
             # Wait for migrations to complete
             az container logs \
