@@ -1,10 +1,8 @@
 name: Deploy to Azure Container Apps
 
 on:
-  workflow_run:
-    workflows: ["Build and Push Docker Images"]
-    types: [completed]
-    branches: [main, test, ci/cd-pipeline]
+  repository_dispatch:
+    types: [trigger-deploy-to-azure]
   workflow_dispatch:  # Allow manual triggering
     inputs:
       image_tag:
@@ -32,8 +30,6 @@ env:
 jobs:
   deploy-container-apps:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -51,29 +47,13 @@ jobs:
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
           echo "Using image tag from workflow dispatch: $IMAGE_TAG"
 
-      - name: Get triggering workflow artifact
-        if: github.event_name == 'workflow_run'
-        id: workflow-artifact
-        uses: dawidd6/action-download-artifact@v2
-        with:
-          workflow: ${{ github.event.workflow_run.workflow_id }}
-          run_id: ${{ github.event.workflow_run.id }}
-          name: image_tag
-          path: /tmp/workflow-artifacts
-          check_artifacts: false
-          search_artifacts: true
-          
-      - name: Set image tag from workflow run
-        if: github.event_name == 'workflow_run'
-        id: set-tag-workflow
+      - name: Set image tag from repository dispatch
+        if: github.event_name == 'repository_dispatch'
+        id: set-tag-repo-dispatch
         run: |
-          if [ -f "/tmp/workflow-artifacts/image_tag.txt" ]; then
-            IMAGE_TAG=$(cat /tmp/workflow-artifacts/image_tag.txt)
-          else
-            IMAGE_TAG="latest"
-          fi
+          IMAGE_TAG="${{ github.event.client_payload.image_tag }}"
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-          echo "Using image tag from workflow run: $IMAGE_TAG"
+          echo "Using image tag from repository dispatch: $IMAGE_TAG"
       
       - name: Combine image tags
         id: set-image-tag
@@ -81,15 +61,14 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "image_tag=${{ steps.set-tag-dispatch.outputs.image_tag }}" >> $GITHUB_OUTPUT
           else
-            echo "image_tag=${{ steps.set-tag-workflow.outputs.image_tag }}" >> $GITHUB_OUTPUT
+            echo "image_tag=${{ steps.set-tag-repo-dispatch.outputs.image_tag }}" >> $GITHUB_OUTPUT
           fi
       
       - name: Debug Info
         run: |
           echo "Event name: ${{ github.event_name }}"
-          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
-          echo "Workflow run id: ${{ github.event.workflow_run.id }}"
-          echo "Head branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Event type: ${{ github.event.action }}"
+          echo "Branch: ${{ github.event.client_payload.branch }}"
           echo "Image tag to deploy: ${{ steps.set-image-tag.outputs.image_tag }}"
           echo "Full backend image URL: ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.BACKEND_IMAGE }}:${{ steps.set-image-tag.outputs.image_tag }}"
           echo "Full OCR service image URL: ${{ env.REGISTRY }}/${{ env.ORGANIZATION }}/${{ env.OCR_SERVICE_IMAGE }}:${{ steps.set-image-tag.outputs.image_tag }}"
