@@ -21,6 +21,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write  # Required for artifact operations
+      actions: write   # Required for artifact operations
     outputs:
       image_tag: ${{ steps.set-tag.outputs.image_tag }}
 
