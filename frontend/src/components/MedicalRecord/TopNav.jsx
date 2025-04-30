@@ -23,15 +23,16 @@ const topNavItems = [
 const TopNav = () => {
   return (
     <div className="flex justify-between items-center bg-white p-3 shadow-md rounded-lg mb-6">
-      <div className="flex space-x-6">
+      <div className="flex space-x-4 md:space-x-6 overflow-x-auto">
         {topNavItems.map((item) => (
           <Link
             key={item.name}
             to={item.path}
-            className="flex items-center space-x-2 text-gray-600 hover:text-blue-600"
+            className="flex items-center space-x-1 md:space-x-2 text-gray-600 hover:text-blue-600"
+            title={item.name}
           >
-            <item.icon className="w-5 h-5" />
-            <span>{item.name}</span>
+            <item.icon className="w-5 h-5 flex-shrink-0" />
+            <span className="hidden md:inline">{item.name}</span>
           </Link>
         ))}
       </div>
