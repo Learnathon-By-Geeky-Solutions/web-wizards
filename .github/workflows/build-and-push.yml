@@ -98,11 +98,11 @@ jobs:
           echo "Workflow Run ID: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
           echo "This ID can be used by the deploy-to-azure workflow to identify this build."
       
-      # Explicitly trigger the deploy-to-azure workflow
+      # Trigger deploy-to-azure workflow using workflow_dispatch instead of repository_dispatch
       - name: Trigger deploy-to-azure workflow
         if: github.event_name != 'pull_request' && success()
-        uses: peter-evans/repository-dispatch@v2
+        uses: benc-uk/workflow-dispatch@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: trigger-deploy-to-azure
-          client-payload: '{"image_tag": "${{ steps.set-tag.outputs.image_tag }}", "run_id": "${{ github.run_id }}", "sha": "${{ github.sha }}", "branch": "${{ github.ref_name }}"}'
+          workflow: Deploy to Azure Container Apps
+          token: ${{ secrets.GHCR_PAT }}  # Using GHCR_PAT instead of GITHUB_TOKEN
+          inputs: '{"image_tag": "${{ steps.set-tag.outputs.image_tag }}"}'
