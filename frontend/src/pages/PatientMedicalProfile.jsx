@@ -10,7 +10,7 @@ import { AuthContext } from '../context/authContextDefinition';
 
 const PatientMedicalProfile = () => {
   const { user } = useContext(AuthContext);
-  const [fullName, setFullName] = useState(user?.user?.name || 'User');
+  const [fullName, setFullName] = useState(user?.name || 'User');
   const [profileData, setProfileData] = useState(user || {});
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);

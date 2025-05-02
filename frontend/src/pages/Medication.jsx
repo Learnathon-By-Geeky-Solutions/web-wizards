@@ -9,6 +9,7 @@ import EmptyState from '../components/common/EmptyState';
 import AddPlanButton from '../components/Medication/AddPlanButton';
 import AddPlanModal from '../components/Medication/AddPlanModal';
 import NotificationsMenu from '../components/Medication/NotificationsMenu';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 import { 
   useGetMedicationPlansQuery, 
   useCreateMedicationPlanMutation,
@@ -155,7 +156,9 @@ const Medication = () => {
   if (isLoading && medicationPlans.length === 0) {
     return (
       <MainLayout>
-        <div className="flex justify-center items-center h-full">Loading...</div>
+        <div className="flex justify-center items-center h-full">
+          <LoadingSpinner />
+        </div>
       </MainLayout>
     );
   }
@@ -189,7 +192,7 @@ const Medication = () => {
 
             {isLoading && (
               <div className="flex justify-center my-8">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
+                <LoadingSpinner />
               </div>
             )}
 

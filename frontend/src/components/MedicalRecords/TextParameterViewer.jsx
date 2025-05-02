@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { format } from 'date-fns';
-import { useGetTextParameterResultsQuery } from '../../services/testParameterApi';
+import { useGetTextParameterQuery } from '../../store/api/testParameterApi';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
 
@@ -13,8 +13,9 @@ const TextParameterViewer = ({ parameterId, timeframe = 30, patientId = null }) 
     isLoading, 
     isError, 
     error 
-  } = useGetTextParameterResultsQuery({ 
+  } = useGetTextParameterQuery({ 
     parameterId, 
+    testResultId: selectedResultId,
     days: timeframe,
     patientId
   });

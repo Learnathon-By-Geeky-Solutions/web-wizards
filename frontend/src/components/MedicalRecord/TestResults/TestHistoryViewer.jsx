@@ -1,65 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { format, subMonths } from 'date-fns';
-import axios from 'axios';
 import ParameterHistory from './ParameterHistory';
+import { useGetTestTypesQuery, useGetParametersQuery } from '../../../store/api/medicalRecordsApi';
 
 const TestHistoryViewer = () => {
-  const [testTypes, setTestTypes] = useState([]);
   const [selectedTestType, setSelectedTestType] = useState('');
-  const [parameters, setParameters] = useState([]);
   const [selectedParameter, setSelectedParameter] = useState('');
   const [startDate, setStartDate] = useState(format(subMonths(new Date(), 6), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch test types
+  // Fetch test types using RTK Query
+  const { 
+    data: testTypes = [], 
+    isLoading: isLoadingTestTypes 
+  } = useGetTestTypesQuery();
+
+  // Fetch parameters for selected test type using RTK Query
+  const { 
+    data: parameters = [], 
+    isLoading: isLoadingParameters 
+  } = useGetParametersQuery(
+    { test_type: selectedTestType }, 
+    { skip: !selectedTestType }
+  );
+
+  // Set initial selected test type when data is loaded
   useEffect(() => {
-    const fetchTestTypes = async () => {
-      setIsLoading(true);
-      try {
-        const response = await axios.get('/api/medical-records/test-types/');
-        setTestTypes(response.data);
-        if (response.data.length > 0) {
-          setSelectedTestType(response.data[0].code);
-        }
-      } catch (error) {
-        console.error('Error fetching test types:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    if (testTypes.length > 0 && !selectedTestType) {
+      setSelectedTestType(testTypes[0].code);
+    }
+  }, [testTypes, selectedTestType]);
 
-    fetchTestTypes();
-  }, []);
-
-  // Fetch parameters for selected test type
+  // Set initial selected parameter when parameters are loaded
   useEffect(() => {
-    const fetchParameters = async () => {
-      if (!selectedTestType) return;
-      
-      setIsLoading(true);
-      try {
-        const response = await axios.get('/api/medical-records/parameters/', {
-          params: { test_type: selectedTestType }
-        });
-        setParameters(response.data);
-        if (response.data.length > 0) {
-          setSelectedParameter(response.data[0].code);
-        } else {
-          setSelectedParameter('');
-        }
-      } catch (error) {
-        console.error('Error fetching parameters:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchParameters();
-  }, [selectedTestType]);
+    if (parameters.length > 0 && !selectedParameter) {
+      setSelectedParameter(parameters[0].code);
+    } else if (parameters.length === 0) {
+      setSelectedParameter('');
+    }
+  }, [parameters, selectedParameter]);
 
   const handleTestTypeChange = (e) => {
     setSelectedTestType(e.target.value);
+    setSelectedParameter(''); // Reset parameter selection when test type changes
   };
 
   const handleParameterChange = (e) => {
@@ -70,6 +53,8 @@ const TestHistoryViewer = () => {
     const param = parameters.find(p => p.code === selectedParameter);
     return param ? param.name : selectedParameter;
   };
+
+  const isLoading = isLoadingTestTypes || isLoadingParameters;
 
   return (
     <div className="space-y-4">

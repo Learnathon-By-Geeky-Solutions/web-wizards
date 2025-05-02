@@ -10,6 +10,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.users.models import Users
 from apps.users.models.patient_profile import PatientProfile
+import cloudinary.uploader
 
 class GoogleLoginView(APIView):
     """
@@ -40,6 +41,7 @@ class GoogleCallbackView(APIView):
     
     def post(self, request):
         code = request.data.get('code')
+        print(f"code is ${code}")
         if not code:
             return Response({'error': 'Authorization code is missing'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -51,6 +53,7 @@ class GoogleCallbackView(APIView):
             redirect_uri = 'http://localhost:5173/google-callback'
         
         try:
+            print("IN    try bloock for createing the user")
             # Exchange the authorization code for tokens
             client_id = os.environ.get('GOOGLE_CLIENT_ID')
             client_secret = os.environ.get('GOOGLE_CLIENT_SECRET')
@@ -72,7 +75,7 @@ class GoogleCallbackView(APIView):
                 'redirect_uri': redirect_uri,
                 'grant_type': 'authorization_code'
             }
-            
+            print(f"Token Data: {token_data}")  # Debug token data
             # Prevent reuse by checking if this code has already been processed
             # You could implement a cache-based check here if needed
             
@@ -108,6 +111,7 @@ class GoogleCallbackView(APIView):
             email = user_info.get('email')
             name = user_info.get('name')
             given_name = user_info.get('given_name', '')
+            print(f"User Info: {user_info}")  # Debug user info
             picture = user_info.get('picture')  # Google profile image URL
             
             # Check if user exists, create if not
@@ -131,23 +135,57 @@ class GoogleCallbackView(APIView):
                 
                 # Create a patient profile for the new user
                 try:
+                    if picture:
+                        try:
+                            # If there's an existing image, it will be replaced in Cloudinary automatically
+                            # Upload to Cloudinary with user-specific public_id to ensure replacement
+                            public_id = f"patient_profile_{user.id}"
+                            upload_result = cloudinary.uploader.upload(
+                                picture,
+                                folder="patient_profiles",
+                                public_id=public_id,
+                                overwrite=True,
+                                resource_type="image"
+                            )
+                            print(f"upload image url ${upload_result['secure_url']}")
+                        except Exception as cloudinary_error:
+                            print(f"Error uploading to Cloudinary: {str(cloudinary_error)}")
+                            # Continue processing even if Cloudinary upload fails
                     # Create a basic patient profile
                     patient_profile = PatientProfile.objects.create(
                         user=user,
-                        image=picture if picture else None,  # Store the Google profile image URL
+                        image=upload_result['secure_url']
                     )
                 except Exception as profile_error:
                     print(f"Error creating patient profile: {str(profile_error)}")
             
             # Update profile picture if available
             try:
-                # Get or create profile
-                patient_profile, created = PatientProfile.objects.get_or_create(user=user)
+                # Get existing profile
+                patient_profile = PatientProfile.objects.get(user=user)
                 
-                # Update the profile image if it's available and different
-                if picture and (not patient_profile.image or patient_profile.image != picture):
-                    patient_profile.image = picture
-                    patient_profile.save()
+                # Update the profile image if it's available
+                if picture:
+                    try:
+                        # If there's an existing image, it will be replaced in Cloudinary automatically
+                        # Upload to Cloudinary with user-specific public_id to ensure replacement
+                        public_id = f"patient_profile_{user.id}"
+                        upload_result = cloudinary.uploader.upload(
+                            picture,
+                            folder="patient_profiles",
+                            public_id=public_id,
+                            overwrite=True,
+                            resource_type="image"
+                        )
+                        print(f"upload image url ${upload_result['secure_url']}")
+                        # Update the profile with the new image URL
+                        patient_profile.image = upload_result['secure_url']
+                        patient_profile.save()
+                    except Exception as cloudinary_error:
+                        print(f"Error uploading to Cloudinary: {str(cloudinary_error)}")
+                        # Continue processing even if Cloudinary upload fails
+            except PatientProfile.DoesNotExist:
+                print(f"Patient profile does not exist for user: {user.email}")
             except Exception as profile_error:
                 print(f"Error updating profile picture: {str(profile_error)}")
             
@@ -157,17 +195,15 @@ class GoogleCallbackView(APIView):
             
             print(f"Authentication successful for user: {email}")
             
+            # Include only the user's name in the response
+            user_data = {
+                'name': user.name
+            }
+            
             return Response({
                 'access': access_token,
                 'refresh': str(refresh),
-                'user': {
-                    'id': user.id,
-                    'email': user.email,
-                    'name': user.name,
-                    'user_type': user.user_type,
-                    'image': picture,  # Include the profile image URL in the response
-                    'is_email_verified': True
-                }
+                'user': user_data
             })
             
         except Exception as e:

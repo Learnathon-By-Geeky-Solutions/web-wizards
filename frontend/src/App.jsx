@@ -6,7 +6,6 @@ import Home from './pages/Home';
 import LoadingScreen from './components/common/LoadingScreen';
 import { AuthProvider } from './context/authContext';
 import { AuthContext } from './context/authContextDefinition';
-import { UserProvider } from './context/UserContext'; // Import UserProvider
 import SentryErrorBoundary from './components/common/SentryErrorBoundary';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -324,9 +323,7 @@ function App() {
       <PersistGate loading={<LoadingScreen />} persistor={persistor}>
         <SentryErrorBoundary>
           <AuthProvider>
-            <UserProvider>
-              <RouterProvider router={router} />
-            </UserProvider>
+            <RouterProvider router={router} />
           </AuthProvider>
         </SentryErrorBoundary>
       </PersistGate>

@@ -75,3 +75,6 @@ logs/
 #extra files
 temp.txt
 test
+.vscode
+.vscode/settings.json
+

@@ -1,39 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { FaSearch, FaExclamationTriangle } from 'react-icons/fa';
 import ParameterHistory from './ParameterHistory';
+import { useGetCommonParametersQuery } from '../../../store/api/medicalRecordsApi';
 
 const ParameterDashboard = () => {
-  const [parameters, setParameters] = useState([]);
   const [filteredParameters, setFilteredParameters] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [categories, setCategories] = useState([]);
 
-  useEffect(() => {
-    const fetchParameters = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch all common test parameters
-        const response = await axios.get('/api/medical-records/parameters/common/');
-        
-        // Extract unique categories from parameters
-        const paramData = response.data;
-        const uniqueCategories = [...new Set(paramData.map(param => param.test_type?.category))].filter(Boolean);
-        
-        setParameters(paramData);
-        setFilteredParameters(paramData);
-        setCategories(uniqueCategories);
-      } catch (error) {
-        console.error('Error fetching parameters:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Fetch parameters using RTK Query
+  const { data: parameters = [], isLoading } = useGetCommonParametersQuery();
 
-    fetchParameters();
-  }, []);
+  // Extract unique categories from parameters
+  useEffect(() => {
+    if (parameters.length > 0) {
+      const uniqueCategories = [...new Set(parameters.map(param => param.test_type?.category))].filter(Boolean);
+      setCategories(uniqueCategories);
+      setFilteredParameters(parameters);
+    }
+  }, [parameters]);
 
   // Apply filters when search query or category changes
   useEffect(() => {

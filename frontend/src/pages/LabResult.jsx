@@ -1,55 +1,84 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FaPlus, FaFilter, FaChartLine } from 'react-icons/fa';
-import axios from 'axios';
-import { useUser } from '../context/UserContext';
+import { useSelector } from 'react-redux';
 import TestHistoryViewer from '../components/MedicalRecord/TestResults/TestHistoryViewer';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import { 
+  useGetTestTypesQuery, 
+  useGetTestResultsQuery,
+  useCreateTestResultMutation,
+  useUploadLabDocumentMutation 
+} from '../store/api/labResultsApi';
 
 const LabResult = () => {
-  const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [testResults, setTestResults] = useState([]);
-  const [testTypes, setTestTypes] = useState([]);
   const [selectedTestType, setSelectedTestType] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showHistory, setShowHistory] = useState(false);
-  const { user } = useUser();
-
-  useEffect(() => {
-    // Fetch test types
-    const fetchTestTypes = async () => {
-      try {
-        const response = await axios.get('/api/medical-records/test-types/');
-        setTestTypes(response.data);
-      } catch (error) {
-        console.error('Error fetching test types:', error);
-      }
-    };
-
-    // Fetch test results
-    const fetchTestResults = async () => {
-      setIsLoading(true);
-      try {
-        const params = {};
-        if (selectedTestType) params.test_type = selectedTestType;
-        if (startDate) params.start_date = startDate;
-        if (endDate) params.end_date = endDate;
-
-        const response = await axios.get('/api/medical-records/test-results/', { params });
-        setTestResults(response.data);
-      } catch (error) {
-        console.error('Error fetching test results:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTestTypes();
-    fetchTestResults();
-  }, [selectedTestType, startDate, endDate]);
+  const [newTestData, setNewTestData] = useState({
+    testType: '',
+    testDate: '',
+    document: null
+  });
+  
+  const user = useSelector((state) => state.user.user);
+  
+  // RTK Query hooks
+  const { data: testTypes = [], isLoading: isLoadingTestTypes } = useGetTestTypesQuery();
+  const { 
+    data: testResults = [], 
+    isLoading: isLoadingTestResults,
+    refetch: refetchTestResults
+  } = useGetTestResultsQuery({
+    test_type: selectedTestType,
+    start_date: startDate,
+    end_date: endDate
+  });
+  
+  const [createTestResult] = useCreateTestResultMutation();
+  const [uploadLabDocument] = useUploadLabDocumentMutation();
 
   const handleFilterChange = () => {
-    // This will trigger the useEffect to fetch filtered results
+    refetchTestResults();
+  };
+
+  const handleSubmitTestResult = async (e) => {
+    e.preventDefault();
+    
+    if (newTestData.document) {
+      const formData = new FormData();
+      formData.append('document', newTestData.document);
+      formData.append('test_type', newTestData.testType);
+      formData.append('test_date', newTestData.testDate);
+      
+      try {
+        await uploadLabDocument(formData).unwrap();
+        setShowModal(false);
+        setNewTestData({
+          testType: '',
+          testDate: '',
+          document: null
+        });
+      } catch (error) {
+        console.error('Failed to upload document:', error);
+      }
+    } else {
+      try {
+        await createTestResult({
+          test_type: newTestData.testType,
+          performed_at: newTestData.testDate,
+        }).unwrap();
+        setShowModal(false);
+        setNewTestData({
+          testType: '',
+          testDate: '',
+          document: null
+        });
+      } catch (error) {
+        console.error('Failed to create test result:', error);
+      }
+    }
   };
 
   const renderParameterValue = (parameter) => {
@@ -66,7 +95,9 @@ const LabResult = () => {
     );
   };
 
-  if (isLoading) return <div className="flex justify-center items-center h-64">Loading...</div>;
+  const isLoading = isLoadingTestTypes || isLoadingTestResults;
+
+  if (isLoading) return <div className="flex justify-center items-center h-64"><LoadingSpinner /></div>;
 
   return (
     <div className="space-y-6">
@@ -175,10 +206,15 @@ const LabResult = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white w-full max-w-md p-6 rounded-lg">
             <h2 className="text-2xl font-bold mb-4">Add Lab Result</h2>
-            <div className="space-y-4">
+            <form onSubmit={handleSubmitTestResult} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Test Type</label>
-                <select className="w-full border rounded px-3 py-2">
+                <select 
+                  className="w-full border rounded px-3 py-2"
+                  value={newTestData.testType}
+                  onChange={(e) => setNewTestData({...newTestData, testType: e.target.value})}
+                  required
+                >
                   <option value="">Select a test type</option>
                   {testTypes.map(type => (
                     <option key={type.code} value={type.code}>{type.name}</option>
@@ -188,29 +224,43 @@ const LabResult = () => {
               
               <div>
                 <label className="block text-sm font-medium mb-1">Test Date</label>
-                <input type="date" className="w-full border rounded px-3 py-2" />
+                <input 
+                  type="date" 
+                  className="w-full border rounded px-3 py-2"
+                  value={newTestData.testDate}
+                  onChange={(e) => setNewTestData({...newTestData, testDate: e.target.value})}
+                  required
+                />
               </div>
               
               <div>
                 <label className="block text-sm font-medium mb-1">Upload Document</label>
-                <input type="file" className="w-full border rounded px-3 py-2" />
+                <input 
+                  type="file" 
+                  className="w-full border rounded px-3 py-2"
+                  onChange={(e) => setNewTestData({...newTestData, document: e.target.files[0]})}
+                />
                 <p className="text-sm text-gray-500 mt-1">
                   Upload a lab report for automatic data extraction
                 </p>
               </div>
-            </div>
-            
-            <div className="flex justify-end space-x-2 mt-6">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                Save
-              </button>
-            </div>
+              
+              <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

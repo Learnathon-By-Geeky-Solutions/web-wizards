@@ -8,7 +8,7 @@ import { tokenService } from '../services/tokenService';
 // Import RTK Query hooks
 import { useLoginMutation, useLogoutMutation } from '../store/api/authApi';
 import { useProcessGoogleCallbackMutation } from '../store/api/oauthApi';
-import { useGetUserProfileQuery } from '../store/api/userProfileApi';
+import { userProfileApi } from '../store/api/userProfileApi';
 // Import AuthContext from the new file
 import { AuthContext } from './authContextDefinition';
 import { secureStore, secureRetrieve } from '../utils/security';
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
   
   // Skip the profile query during initial load to avoid premature requests
   // We'll manually trigger it after proper token initialization
-  const { refetch: refetchUserProfile } = useGetUserProfileQuery(undefined, {
+  const { refetch: refetchUserProfile } = userProfileApi.endpoints.getUserProfile.useQuery(undefined, {
     skip: true, // Always skip automatic query
   });
 
@@ -38,17 +38,11 @@ export const AuthProvider = ({ children }) => {
   const normalizeUserData = (userData) => {
     if (!userData) return null;
     
-    // Make sure we have consistent structure regardless of source (Google or API)
+    // Now we only care about the name
     return {
-      id: userData.id || userData.user_id || '',
-      email: userData.email || '',
-      name: userData.name || userData.username || '',
-      image: userData.image || userData.profile_picture || null,
-      // Add other fields as needed
-      is_staff: userData.is_staff || false,
-      is_doctor: userData.is_doctor || false,
-      user_type: userData.user_type || 'patient',
-      ...userData // Keep any additional fields
+      name: userData.name || '',
+      // Keep any additional fields that might be needed by the app
+      ...userData 
     };
   };
   
@@ -86,18 +80,28 @@ export const AuthProvider = ({ children }) => {
   const fetchUserProfile = useCallback(async () => {
     try {
       console.log("Fetching user profile...");
-      // Use RTK Query refetch to get user profile
-      const result = await refetchUserProfile().unwrap();
-      if (result) {
-        updateUserState(result);
-        return result;
+      
+      // Get the API endpoint from RTK Query
+      const { data: userApiData, error } = await dispatch(
+        userProfileApi.endpoints.getUserProfile.initiate()
+      );
+      
+      if (error) {
+        console.error("Error fetching user profile with initiate:", error);
+        return null;
+      }
+      
+      if (userApiData) {
+        updateUserState(userApiData);
+        console.log("User state updated with:", userApiData);
+        return userApiData;
       }
       return null;
     } catch (error) {
       console.error("Error fetching user profile:", error);
       return null;
     }
-  }, [refetchUserProfile, updateUserState]);
+  }, [dispatch, updateUserState]);
 
   // Helper function for login
   const handleLogin = useCallback(async (credentials) => {
@@ -143,26 +147,20 @@ export const AuthProvider = ({ children }) => {
         redirect_uri: redirectUri
       }).unwrap();
       
-      console.log("Google login successful, processing user data");
+      console.log("Google login successful, storing tokens");
       
       // Store tokens securely
       if (response.access) tokenService.setAccessToken(response.access);
       if (response.refresh) tokenService.setRefreshToken(response.refresh);
       
-      // Set user information directly from the response
-      if (response.user) {
-        const userData = normalizeUserData({
-          ...response.user,
-          // Ensure profile image is properly set
-          image: response.user.image || null
-        });
-        
-        updateUserState(userData);
+      // Fetch user profile from API instead of using response data
+      const userData = await fetchUserProfile();
+      if (userData) {
         setIsAuthenticated(true);
-        
-        // Initialize the token refresh mechanism
-        authService.startTokenRefreshTimer();
       }
+      
+      // Initialize the token refresh mechanism
+      authService.startTokenRefreshTimer();
       
       return response;
     } catch (error) {
@@ -170,7 +168,7 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
       throw error;
     }
-  }, [processGoogleCallback, updateUserState]);
+  }, [processGoogleCallback, fetchUserProfile]);
 
   const handleLogout = useCallback(async () => {
     try {

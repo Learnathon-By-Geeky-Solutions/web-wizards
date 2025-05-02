@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { FaFilter, FaFileDownload, FaExternalLinkAlt } from 'react-icons/fa';
 import { format } from 'date-fns';
+import { useGetTestTypesQuery, useGetTestResultsQuery } from '../../../store/api/medicalRecordsApi';
 
 const TestResultsTable = () => {
-  const [testResults, setTestResults] = useState([]);
-  const [testTypes, setTestTypes] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
     testType: '',
     startDate: '',
@@ -16,42 +13,23 @@ const TestResultsTable = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch test types and results
-  useEffect(() => {
-    const fetchTestTypes = async () => {
-      try {
-        const response = await axios.get('/api/medical-records/test-types/');
-        setTestTypes(response.data);
-      } catch (error) {
-        console.error('Error fetching test types:', error);
-      }
-    };
+  // Fetch test types using RTK Query
+  const { data: testTypes = [] } = useGetTestTypesQuery();
 
-    fetchTestTypes();
-    fetchTestResults();
-  }, []);
-
-  // Fetch test results with applied filters
-  const fetchTestResults = async () => {
-    setIsLoading(true);
-    try {
-      const params = {};
-      if (filters.testType) params.test_type = filters.testType;
-      if (filters.startDate) params.start_date = filters.startDate;
-      if (filters.endDate) params.end_date = filters.endDate;
-      
-      const response = await axios.get('/api/medical-records/test-results/', { params });
-      setTestResults(response.data);
-    } catch (error) {
-      console.error('Error fetching test results:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Fetch test results with applied filters using RTK Query
+  const { 
+    data: testResults = [], 
+    isLoading,
+    refetch
+  } = useGetTestResultsQuery({
+    test_type: filters.testType,
+    start_date: filters.startDate,
+    end_date: filters.endDate
+  });
 
   // Apply filters
   const applyFilters = () => {
-    fetchTestResults();
+    refetch();
     setShowFilters(false);
   };
 
@@ -63,7 +41,6 @@ const TestResultsTable = () => {
       endDate: '',
       showAbnormalOnly: false
     });
-    fetchTestResults();
   };
 
   // Format date for display

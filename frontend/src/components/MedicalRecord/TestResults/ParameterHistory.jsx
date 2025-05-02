@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import axios from 'axios';
 import {
   LineChart,
   Line,
@@ -11,45 +10,21 @@ import {
   ResponsiveContainer,
   ReferenceLine
 } from 'recharts';
+import { useGetParameterHistoryQuery } from '../../store/api/medicalRecordsApi';
 
 const ParameterHistory = ({ parameterId, height = "100%", showLegend = false }) => {
-  const [history, setHistory] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data, isLoading, error } = useGetParameterHistoryQuery(parameterId, {
+    skip: !parameterId
+  });
   
-  useEffect(() => {
-    const fetchHistory = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const response = await axios.get(`/api/medical-records/parameters/${parameterId}/history/`);
-        
-        // Transform data for chart
-        const transformedData = response.data.map(item => ({
-          date: new Date(item.date).toLocaleDateString(),
-          value: parseFloat(item.value),
-          isAbnormal: item.is_abnormal,
-          // Store original date for sorting
-          originalDate: new Date(item.date)
-        }));
-        
-        // Sort chronologically
-        transformedData.sort((a, b) => a.originalDate - b.originalDate);
-        
-        setHistory(transformedData);
-      } catch (err) {
-        console.error('Error fetching parameter history:', err);
-        setError('Failed to load parameter history');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (parameterId) {
-      fetchHistory();
-    }
-  }, [parameterId]);
+  // Transform data for chart
+  const history = data ? data.map(item => ({
+    date: new Date(item.date).toLocaleDateString(),
+    value: parseFloat(item.value),
+    isAbnormal: item.is_abnormal,
+    // Store original date for sorting
+    originalDate: new Date(item.date)
+  })).sort((a, b) => a.originalDate - b.originalDate) : [];
 
   if (isLoading) {
     return (
@@ -62,7 +37,7 @@ const ParameterHistory = ({ parameterId, height = "100%", showLegend = false }) 
   if (error) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-sm text-red-500">{error}</p>
+        <p className="text-sm text-red-500">Failed to load parameter history</p>
       </div>
     );
   }

@@ -5,6 +5,7 @@ import { FcGoogle } from 'react-icons/fc';
 import { useLoginMutation, useResendVerificationEmailMutation } from '../store/api/authApi';
 import { useInitiateGoogleLoginMutation } from '../store/api/oauthApi';
 import { AuthContext } from '../context/authContextDefinition';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const Login = () => {
   const {
@@ -79,6 +80,14 @@ const Login = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="text-center mb-4">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
   // Show verification required screen
   if (emailVerificationRequired) {
     return (
@@ -130,9 +139,7 @@ const Login = () => {
         <h2 className="text-2xl font-bold mb-6 text-center font-mono">Log in</h2>
         {isLoading && (
           <div className="text-center mb-4">
-            <div className="spinner-border text-primary" role="status">
-              <span className="sr-only">Loading...</span>
-            </div>
+            <LoadingSpinner />
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)}>

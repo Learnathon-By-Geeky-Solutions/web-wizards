@@ -1,33 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { FaChevronLeft, FaTags, FaTable, FaChartLine } from 'react-icons/fa';
 import ParameterDashboard from '../components/MedicalRecord/TestResults/ParameterDashboard';
 import TestResultsTable from '../components/MedicalRecord/TestResults/TestResultsTable';
+import { useGetTestResultsQuery } from '../store/api/medicalRecordsApi';
 
 const LabResultsPage = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [recentTests, setRecentTests] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchRecentTests = async () => {
-      setIsLoading(true);
-      try {
-        const response = await axios.get('/api/medical-records/test-results/', {
-          params: { limit: 5 }
-        });
-        setRecentTests(response.data);
-      } catch (error) {
-        console.error('Error fetching recent tests:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchRecentTests();
-  }, []);
+  
+  // Fetch recent test results with RTK Query
+  const { 
+    data: recentTests = [], 
+    isLoading 
+  } = useGetTestResultsQuery({ limit: 5 });
 
   return (
     <>
