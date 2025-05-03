@@ -13,7 +13,7 @@ import { userProfileApi } from '../store/api/userProfileApi';
 import { AuthContext } from './authContextDefinition';
 import { secureStore, secureRetrieve } from '../utils/security';
 
-// Store user profile data for faster restoration after refresh
+// Store user profile data for faster restoration after refres
 const USER_PROFILE_CACHE_KEY = '_user_profile_cache';
 
 export const AuthProvider = ({ children }) => {
