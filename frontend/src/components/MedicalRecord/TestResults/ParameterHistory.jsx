@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   ReferenceLine
 } from 'recharts';
-import { useGetParameterHistoryQuery } from '../../store/api/medicalRecordsApi';
+import { useGetParameterHistoryQuery } from '../../../store/api/medicalRecordsApi';
 
 const ParameterHistory = ({ parameterId, height = "100%", showLegend = false }) => {
   const { data, isLoading, error } = useGetParameterHistoryQuery(parameterId, {
