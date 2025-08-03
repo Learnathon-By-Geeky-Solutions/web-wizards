@@ -1,10 +1,11 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { FcGoogle } from 'react-icons/fc';
 import { useLoginMutation, useResendVerificationEmailMutation } from '../store/api/authApi';
 import { useInitiateGoogleLoginMutation } from '../store/api/oauthApi';
 import { AuthContext } from '../context/authContextDefinition';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const Login = () => {
   const {
@@ -26,6 +27,60 @@ const Login = () => {
   
   // Combined loading state
   const isLoading = isLoginLoading || isGoogleLoading;
+
+  // Listen for messages from the Google OAuth popup window and check for auth code in localStorage
+  useEffect(() => {
+    let authCheckInterval;
+    
+    // Check for auth code in localStorage (set by popup window)
+    const checkForAuthCode = () => {
+      const authCode = localStorage.getItem('google_auth_code');
+      const authTimestamp = localStorage.getItem('google_auth_timestamp');
+      
+      // Only process recent auth codes (within last 30 seconds)
+      const isRecent = authTimestamp && (Date.now() - parseInt(authTimestamp)) < 30000;
+      
+      if (authCode && isRecent) {
+        console.log('Found fresh auth code in localStorage, processing...');
+        
+        // Get any state parameter
+        const authState = localStorage.getItem('google_auth_state');
+        
+        // Clear localStorage items
+        localStorage.removeItem('google_auth_code');
+        localStorage.removeItem('google_auth_state');
+        localStorage.removeItem('google_auth_timestamp');
+        
+        // Use direct window location change to process the callback in the main window
+        const redirectUri = `${window.location.origin}/google-callback`;
+        window.location.href = `${redirectUri}?code=${authCode}${authState ? `&state=${authState}` : ''}`;
+        
+        return true;
+      }
+      return false;
+    };
+    
+    // Set up polling to check for auth code (for when popup closes)
+    authCheckInterval = setInterval(() => {
+      const found = checkForAuthCode();
+      if (found && authCheckInterval) {
+        clearInterval(authCheckInterval);
+      }
+    }, 500); // Check every 500ms
+    
+    // Also run check immediately when component mounts
+    const hasAuthCode = checkForAuthCode();
+    if (hasAuthCode && authCheckInterval) {
+      clearInterval(authCheckInterval);
+    }
+
+    // Cleanup function to clear interval
+    return () => {
+      if (authCheckInterval) {
+        clearInterval(authCheckInterval);
+      }
+    };
+  }, [navigate]);
 
   const onSubmit = async (data) => {
     try {
@@ -79,6 +134,14 @@ const Login = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="text-center mb-4">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
   // Show verification required screen
   if (emailVerificationRequired) {
     return (
@@ -130,9 +193,7 @@ const Login = () => {
         <h2 className="text-2xl font-bold mb-6 text-center font-mono">Log in</h2>
         {isLoading && (
           <div className="text-center mb-4">
-            <div className="spinner-border text-primary" role="status">
-              <span className="sr-only">Loading...</span>
-            </div>
+            <LoadingSpinner />
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -222,8 +283,6 @@ const Login = () => {
 
         {/* Footer */}
         <p className="text-center mt-6 text-xs text-gray-500">
-          Forgot your password?
-          <br />
           <a href="/terms" className="text-blue-500 hover:underline">
             Terms Of Use
           </a>{' '}

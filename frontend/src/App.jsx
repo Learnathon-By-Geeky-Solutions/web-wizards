@@ -6,7 +6,6 @@ import Home from './pages/Home';
 import LoadingScreen from './components/common/LoadingScreen';
 import { AuthProvider } from './context/authContext';
 import { AuthContext } from './context/authContextDefinition';
-import { UserProvider } from './context/UserContext'; // Import UserProvider
 import SentryErrorBoundary from './components/common/SentryErrorBoundary';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -16,6 +15,7 @@ import store, { persistor } from './store';
 const Login = lazy(() => import('./pages/Login'));
 const Registration = lazy(() => import('./pages/Registration'));
 const GoogleCallback = lazy(() => import('./pages/GoogleCallback'));
+const GooglePopupCallback = lazy(() => import('./pages/GooglePopupCallback'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Medication = lazy(() => import('./pages/Medication'));
@@ -27,6 +27,7 @@ const HealthIssues = lazy(() => import('./pages/HealthIssues'));
 const HealthIssueDetail = lazy(() => import('./pages/HealthIssueDetail'));
 const HealthIssueFormPage = lazy(() => import('./pages/HealthIssueFormPage'));
 const Chat = lazy(() => import('./pages/Chat'));
+const ChatbotPage = lazy(() => import('./pages/ChatbotPage'));
 const Appointments = lazy(() => import('./pages/Appointments'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
@@ -150,6 +151,14 @@ const router = createBrowserRouter([
     } />,
   },
   {
+    path: "/google-popup-callback",
+    element: (
+      <Suspense fallback={<PageLoading />}>
+        <GooglePopupCallback />
+      </Suspense>
+    ),
+  },
+  {
     path: "/dashboard",
     element: <PrivateRoute element={
       <Suspense fallback={<PageLoading />}>
@@ -254,6 +263,14 @@ const router = createBrowserRouter([
     } />,
   },
   {
+    path: "/chatbot",
+    element: <PrivateRoute element={
+      <Suspense fallback={<PageLoading />}>
+        <ChatbotPage />
+      </Suspense>
+    } />,
+  },
+  {
     path: "/appointments",
     element: <PrivateRoute element={
       <Suspense fallback={<PageLoading />}>
@@ -324,9 +341,7 @@ function App() {
       <PersistGate loading={<LoadingScreen />} persistor={persistor}>
         <SentryErrorBoundary>
           <AuthProvider>
-            <UserProvider>
-              <RouterProvider router={router} />
-            </UserProvider>
+            <RouterProvider router={router} />
           </AuthProvider>
         </SentryErrorBoundary>
       </PersistGate>

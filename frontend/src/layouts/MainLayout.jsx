@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Sidebar from '../components/Sidebar';
+import UserProfile from '../components/Navbar/UserProfile';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 
 /**
@@ -57,14 +58,23 @@ const MainLayout = ({ children }) => {
       {/* Main content area */}
       <div className="flex-1 overflow-y-auto">
         {/* Header with hamburger menu for mobile */}
-        <header className="bg-white shadow-sm p-4 flex items-center lg:hidden">
-          <button 
-            className="p-2 rounded-md hover:bg-gray-100"
-            onClick={toggleSidebar}
-          >
-            <Bars3Icon className="h-6 w-6 text-gray-700" />
-          </button>
-          <h1 className="ml-4 text-xl font-semibold">Amarhealth</h1>
+        <header className="bg-white shadow-sm p-4 flex items-center justify-between lg:hidden">
+          <div className="flex items-center">
+            <button 
+              className="p-2 rounded-md hover:bg-gray-100"
+              onClick={toggleSidebar}
+            >
+              <Bars3Icon className="h-6 w-6 text-gray-700" />
+            </button>
+            <h1 className="ml-4 text-xl font-semibold">Amarhealth</h1>
+          </div>
+          
+          {/* UserProfile in header for small screens */}
+          {!isLargeScreen && (
+            <div className="flex-shrink-0">
+              <UserProfile />
+            </div>
+          )}
         </header>
 
         {/* Page content */}

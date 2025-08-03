@@ -36,7 +36,10 @@ const TopNav = () => {
           </Link>
         ))}
       </div>
-      <UserProfile />
+      {/* Only show UserProfile on medium screens and larger */}
+      <div className="hidden md:block">
+        <UserProfile />
+      </div>
     </div>
   );
 };
